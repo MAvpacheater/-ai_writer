@@ -44,9 +44,9 @@
                 
                 <label class="block mb-2 text-sm">Модель:</label>
                 <select id="modelName" class="w-full bg-slate-700 p-3 rounded mb-3">
-                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (рекомендовано)</option>
-                    <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                    <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (рекомендовано)</option>
+                    <option value="gemini-3.0-pro">Gemini 3 Pro</option>
+                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                 </select>
                 
                 <label class="block mb-2 text-sm">API Key:</label>
@@ -219,9 +219,9 @@
                 
                 if (provider === 'gemini') {
                     modelSelect.innerHTML = `
-                        <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash (рекомендовано)</option>
-                        <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                        <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (рекомендовано)</option>
+                        <option value="gemini-3.0-pro">Gemini 3 Pro</option>
+                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
                     `;
                 } else if (provider === 'openai') {
                     modelSelect.innerHTML = `
@@ -247,7 +247,7 @@
             if (saved) {
                 document.getElementById('apiProvider').value = saved.apiProvider || 'gemini';
                 document.getElementById('apiProvider').dispatchEvent(new Event('change'));
-                document.getElementById('modelName').value = saved.modelName || 'gemini-2.0-flash-exp';
+                document.getElementById('modelName').value = saved.modelName || 'gemini-2.0-flash';
                 document.getElementById('apiKey').value = saved.apiKey || '';
                 document.getElementById('customUrl').value = saved.customUrl || '';
                 document.getElementById('temperature').value = saved.temperature || 0.9;
