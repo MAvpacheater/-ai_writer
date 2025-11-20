@@ -1,533 +1,422 @@
-import React, { useState, useEffect } from 'react';
-import { Book, Settings, Download, Play, Edit, Save, FileText } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ШІ-Письменник</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; }
+        .tab-active { background: #f59e0b; color: #000; }
+        .tab-inactive { background: #334155; }
+        .tab-inactive:hover { background: #475569; }
+    </style>
+</head>
+<body class="text-white">
+    <div class="max-w-6xl mx-auto p-4">
+        <div class="flex items-center gap-3 mb-8">
+            <svg class="w-10 h-10 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+            </svg>
+            <h1 class="text-4xl font-bold">ШІ-Письменник</h1>
+        </div>
 
-// Модуль: LocalStorage Manager
-const StorageManager = {
-  save: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
-  load: (key) => {
-    const data = localStorage.getItem(key);
-    return data ? JSON.parse(data) : null;
-  },
-  remove: (key) => localStorage.removeItem(key)
-};
+        <!-- Навігація -->
+        <div class="flex gap-2 mb-6 flex-wrap">
+            <button onclick="switchTab('setup')" id="tab-setup" class="tab-active px-6 py-2 rounded-lg font-semibold">1. Налаштування</button>
+            <button onclick="switchTab('outline')" id="tab-outline" class="tab-inactive px-6 py-2 rounded-lg font-semibold">2. Структура</button>
+            <button onclick="switchTab('generate')" id="tab-generate" class="tab-inactive px-6 py-2 rounded-lg font-semibold">3. Генерація</button>
+            <button onclick="switchTab('export')" id="tab-export" class="tab-inactive px-6 py-2 rounded-lg font-semibold">4. Експорт</button>
+        </div>
 
-// Модуль: API Manager
-const APIManager = {
-  async generateText(apiKey, prompt, settings) {
-    const url = settings.apiUrl || 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent';
-    
-    try {
-      const response = await fetch(`${url}?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: settings.temperature || 0.9,
-            topK: settings.topK || 40,
-            topP: settings.topP || 0.95,
-            maxOutputTokens: settings.maxTokens || 8000
-          }
-        })
-      });
-      
-      const data = await response.json();
-      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    } catch (error) {
-      throw new Error(`API помилка: ${error.message}`);
-    }
-  }
-};
+        <!-- Вкладка: Налаштування -->
+        <div id="content-setup" class="tab-content">
+            <div class="bg-slate-800 p-6 rounded-lg mb-6">
+                <h2 class="text-2xl font-bold mb-4">API Налаштування</h2>
+                
+                <label class="block mb-2 text-sm">Gemini API Key:</label>
+                <input type="password" id="apiKey" class="w-full bg-slate-700 p-3 rounded mb-4" placeholder="AIza...">
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block mb-2 text-sm">Temperature: <span id="tempValue">0.9</span></label>
+                        <input type="range" id="temperature" min="0" max="1" step="0.1" value="0.9" class="w-full">
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm">Поетичність: <span id="poetryValue">7</span>/10</label>
+                        <input type="range" id="poetryLevel" min="1" max="10" value="7" class="w-full">
+                    </div>
+                </div>
+            </div>
 
-// Модуль: Outline Generator
-const OutlineGenerator = {
-  async generate(apiKey, bookParams, settings) {
-    const prompt = `Створи детальний outline книги:
-Назва: ${bookParams.title}
-Жанр: ${bookParams.genre}
-Стиль: ${bookParams.style}
-Персонажі: ${bookParams.characters}
-Світ: ${bookParams.world}
-Головна ідея: ${bookParams.mainIdea}
-Конфлікт: ${bookParams.conflict}
-Кількість розділів: ${bookParams.chapters}
+            <div class="bg-slate-800 p-6 rounded-lg">
+                <h2 class="text-2xl font-bold mb-4">Параметри книги</h2>
+                
+                <input id="title" placeholder="Назва книги" class="w-full bg-slate-700 p-3 rounded mb-3">
+                
+                <div class="grid grid-cols-2 gap-3 mb-3">
+                    <input id="genre" placeholder="Жанр" class="bg-slate-700 p-3 rounded">
+                    <input id="style" placeholder="Стиль" class="bg-slate-700 p-3 rounded">
+                </div>
+                
+                <textarea id="characters" placeholder="Персонажі (опис, характер, мотивація)" class="w-full bg-slate-700 p-3 rounded mb-3 h-24"></textarea>
+                <textarea id="world" placeholder="Світ/сеттінг" class="w-full bg-slate-700 p-3 rounded mb-3 h-24"></textarea>
+                <textarea id="mainIdea" placeholder="Головна ідея книги" class="w-full bg-slate-700 p-3 rounded mb-3 h-24"></textarea>
+                <textarea id="conflict" placeholder="Центральний конфлікт" class="w-full bg-slate-700 p-3 rounded mb-3 h-24"></textarea>
+                
+                <div class="mb-4">
+                    <label class="block mb-2">Кількість розділів: <span id="chaptersValue">10</span></label>
+                    <input type="range" id="chaptersCount" min="3" max="50" value="10" class="w-full">
+                </div>
+                
+                <button onclick="saveSettings()" class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg">
+                    💾 Зберегти налаштування
+                </button>
+            </div>
+        </div>
 
-Поверни структуру у форматі JSON:
+        <!-- Вкладка: Структура -->
+        <div id="content-outline" class="tab-content hidden">
+            <div class="bg-slate-800 p-6 rounded-lg">
+                <h2 class="text-2xl font-bold mb-4">Структура книги</h2>
+                <button onclick="generateOutline()" id="btnOutline" class="bg-amber-500 hover:bg-amber-600 text-black px-6 py-3 rounded-lg mb-4">
+                    ▶️ Згенерувати outline
+                </button>
+                <div id="outlineContent" class="space-y-4"></div>
+            </div>
+        </div>
+
+        <!-- Вкладка: Генерація -->
+        <div id="content-generate" class="tab-content hidden">
+            <div class="bg-slate-800 p-6 rounded-lg">
+                <h2 class="text-2xl font-bold mb-4">Генерація розділів</h2>
+                <div id="generateContent"></div>
+            </div>
+        </div>
+
+        <!-- Вкладка: Експорт -->
+        <div id="content-export" class="tab-content hidden">
+            <div class="bg-slate-800 p-6 rounded-lg">
+                <h2 class="text-2xl font-bold mb-4">📥 Експорт книги</h2>
+                <p class="mb-4 text-slate-300">Згенеровано розділів: <span id="exportStatus">0 / 0</span></p>
+                
+                <div class="flex gap-4 flex-wrap mb-8">
+                    <button onclick="exportBook('txt')" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg">📄 TXT</button>
+                    <button onclick="exportBook('html')" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg">🌐 HTML</button>
+                    <button onclick="exportBook('epub')" class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg">📚 EPUB</button>
+                </div>
+                
+                <h3 class="text-xl font-bold mb-4">Попередній перегляд:</h3>
+                <div id="previewContent" class="bg-slate-900 p-6 rounded max-h-96 overflow-y-auto"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Модуль: Storage Manager
+        const Storage = {
+            save: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
+            load: (key) => {
+                const data = localStorage.getItem(key);
+                return data ? JSON.parse(data) : null;
+            }
+        };
+
+        // Глобальні змінні
+        let outline = null;
+        let chapters = [];
+        let context = {};
+
+        // Ініціалізація
+        window.addEventListener('DOMContentLoaded', () => {
+            loadSettings();
+            updateSliders();
+        });
+
+        function updateSliders() {
+            document.getElementById('temperature').addEventListener('input', e => {
+                document.getElementById('tempValue').textContent = e.target.value;
+            });
+            document.getElementById('poetryLevel').addEventListener('input', e => {
+                document.getElementById('poetryValue').textContent = e.target.value;
+            });
+            document.getElementById('chaptersCount').addEventListener('input', e => {
+                document.getElementById('chaptersValue').textContent = e.target.value;
+            });
+        }
+
+        function loadSettings() {
+            const saved = Storage.load('settings');
+            if (saved) {
+                document.getElementById('apiKey').value = saved.apiKey || '';
+                document.getElementById('temperature').value = saved.temperature || 0.9;
+                document.getElementById('poetryLevel').value = saved.poetryLevel || 7;
+                document.getElementById('title').value = saved.title || '';
+                document.getElementById('genre').value = saved.genre || '';
+                document.getElementById('style').value = saved.style || '';
+                document.getElementById('characters').value = saved.characters || '';
+                document.getElementById('world').value = saved.world || '';
+                document.getElementById('mainIdea').value = saved.mainIdea || '';
+                document.getElementById('conflict').value = saved.conflict || '';
+                document.getElementById('chaptersCount').value = saved.chapters || 10;
+                updateSliders();
+            }
+            
+            const savedBook = Storage.load('currentBook');
+            if (savedBook) {
+                outline = savedBook.outline;
+                chapters = savedBook.chapters || [];
+            }
+        }
+
+        function saveSettings() {
+            const settings = {
+                apiKey: document.getElementById('apiKey').value,
+                temperature: parseFloat(document.getElementById('temperature').value),
+                poetryLevel: parseInt(document.getElementById('poetryLevel').value),
+                title: document.getElementById('title').value,
+                genre: document.getElementById('genre').value,
+                style: document.getElementById('style').value,
+                characters: document.getElementById('characters').value,
+                world: document.getElementById('world').value,
+                mainIdea: document.getElementById('mainIdea').value,
+                conflict: document.getElementById('conflict').value,
+                chapters: parseInt(document.getElementById('chaptersCount').value)
+            };
+            
+            Storage.save('settings', settings);
+            Storage.save('currentBook', { outline, chapters });
+            alert('✅ Налаштування збережено!');
+        }
+
+        // Перемикання вкладок
+        function switchTab(tab) {
+            ['setup', 'outline', 'generate', 'export'].forEach(t => {
+                document.getElementById('content-' + t).classList.add('hidden');
+                document.getElementById('tab-' + t).className = 'tab-inactive px-6 py-2 rounded-lg font-semibold';
+            });
+            
+            document.getElementById('content-' + tab).classList.remove('hidden');
+            document.getElementById('tab-' + tab).className = 'tab-active px-6 py-2 rounded-lg font-semibold';
+        }
+
+        // API виклик
+        async function callAPI(prompt) {
+            const apiKey = document.getElementById('apiKey').value;
+            if (!apiKey) {
+                alert('⚠️ Введіть API ключ!');
+                throw new Error('No API key');
+            }
+
+            const settings = {
+                temperature: parseFloat(document.getElementById('temperature').value),
+                poetryLevel: parseInt(document.getElementById('poetryLevel').value)
+            };
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${apiKey}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }],
+                    generationConfig: {
+                        temperature: settings.temperature,
+                        topK: 40,
+                        topP: 0.95,
+                        maxOutputTokens: 8000
+                    }
+                })
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error?.message || 'API error');
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+        }
+
+        // Генерація outline
+        async function generateOutline() {
+            const btn = document.getElementById('btnOutline');
+            btn.disabled = true;
+            btn.textContent = '⏳ Генерація...';
+
+            try {
+                const settings = Storage.load('settings');
+                const prompt = `Створи детальний outline книги у форматі JSON:
+Назва: ${settings.title}
+Жанр: ${settings.genre}
+Стиль: ${settings.style}
+Персонажі: ${settings.characters}
+Світ: ${settings.world}
+Головна ідея: ${settings.mainIdea}
+Конфлікт: ${settings.conflict}
+Кількість розділів: ${settings.chapters}
+
+Поверни ТІЛЬКИ JSON без пояснень:
 {
   "chapters": [
-    {"number": 1, "title": "...", "summary": "...", "keyEvents": [...]}
+    {"number": 1, "title": "Назва", "summary": "Опис", "keyEvents": ["подія1", "подія2"]}
   ]
 }`;
-    
-    return await APIManager.generateText(apiKey, prompt, settings);
-  }
-};
 
-// Модуль: Chapter Generator
-const ChapterGenerator = {
-  async generate(apiKey, chapterInfo, context, settings) {
-    const prompt = `Напиши розділ ${chapterInfo.number}: "${chapterInfo.title}"
+                const result = await callAPI(prompt);
+                const jsonMatch = result.match(/\{[\s\S]*\}/);
+                outline = JSON.parse(jsonMatch[0]);
+                
+                Storage.save('currentBook', { outline, chapters });
+                displayOutline();
+            } catch (error) {
+                alert('❌ Помилка: ' + error.message);
+            }
 
-Контекст світу:
-${JSON.stringify(context, null, 2)}
+            btn.disabled = false;
+            btn.textContent = '▶️ Згенерувати outline';
+        }
 
-План розділу: ${chapterInfo.summary}
-Ключові події: ${chapterInfo.keyEvents?.join(', ')}
+        function displayOutline() {
+            const container = document.getElementById('outlineContent');
+            container.innerHTML = outline.chapters.map(ch => `
+                <div class="bg-slate-700 p-4 rounded">
+                    <h3 class="font-bold text-lg mb-2">Розділ ${ch.number}: ${ch.title}</h3>
+                    <p class="text-sm text-slate-300 mb-2">${ch.summary}</p>
+                    <div class="text-xs text-amber-400">Події: ${ch.keyEvents?.join(', ') || 'немає'}</div>
+                </div>
+            `).join('');
+        }
+
+        // Генерація розділу
+        async function generateChapter(chapterInfo, btnId) {
+            const btn = document.getElementById(btnId);
+            btn.disabled = true;
+            btn.textContent = '⏳ Генерація...';
+
+            try {
+                const settings = Storage.load('settings');
+                const prompt = `Напиши повний текст розділу ${chapterInfo.number}: "${chapterInfo.title}"
+
+Контекст: ${JSON.stringify(context)}
+План: ${chapterInfo.summary}
+Події: ${chapterInfo.keyEvents?.join(', ')}
 
 Стиль: ${settings.style}
-Рівень поетичності: ${settings.poetryLevel}/10
-Довжина: ${settings.chapterLength} слів
+Поетичність: ${settings.poetryLevel}/10
+Довжина: ~2000 слів
 
-Напиши повний текст розділу:`;
-    
-    return await APIManager.generateText(apiKey, prompt, settings);
-  }
-};
+Напиши ТІЛЬКИ текст розділу без заголовків:`;
 
-// Модуль: Book Exporter
-const BookExporter = {
-  toTXT(book) {
-    let content = `${book.title}\n${'='.repeat(book.title.length)}\n\n`;
-    book.chapters?.forEach(ch => {
-      content += `\n\nРОЗДІЛ ${ch.number}: ${ch.title}\n${'-'.repeat(50)}\n\n${ch.content}\n`;
-    });
-    return content;
-  },
-  
-  toHTML(book) {
-    let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${book.title}</title>
+                const content = await callAPI(prompt);
+                chapters.push({ ...chapterInfo, content });
+                
+                context.lastChapter = chapterInfo.number;
+                context.events = [...(context.events || []), ...(chapterInfo.keyEvents || [])];
+                
+                Storage.save('currentBook', { outline, chapters });
+                btn.textContent = '✅ Готово';
+                updateExportStatus();
+            } catch (error) {
+                alert('❌ Помилка: ' + error.message);
+                btn.disabled = false;
+                btn.textContent = 'Згенерувати';
+            }
+        }
+
+        // Відображення розділів для генерації
+        switchTab = (function(original) {
+            return function(tab) {
+                original(tab);
+                if (tab === 'generate') {
+                    const container = document.getElementById('generateContent');
+                    if (!outline) {
+                        container.innerHTML = '<p class="text-slate-400">Спочатку створіть outline</p>';
+                        return;
+                    }
+                    
+                    container.innerHTML = outline.chapters.map((ch, i) => {
+                        const generated = chapters.find(c => c.number === ch.number);
+                        return `
+                            <div class="bg-slate-700 p-4 rounded mb-4">
+                                <div class="flex justify-between items-center">
+                                    <h3 class="font-bold">Розділ ${ch.number}: ${ch.title}</h3>
+                                    ${!generated 
+                                        ? `<button onclick="generateChapter(${JSON.stringify(ch).replace(/"/g, '&quot;')}, 'btn-ch-${i}')" id="btn-ch-${i}" class="bg-amber-500 hover:bg-amber-600 text-black px-4 py-2 rounded text-sm">Згенерувати</button>`
+                                        : '<span class="text-green-400">✅ Готово</span>'
+                                    }
+                                </div>
+                                ${generated ? `<div class="mt-2 text-sm text-slate-300 max-h-40 overflow-y-auto">${generated.content.substring(0, 500)}...</div>` : ''}
+                            </div>
+                        `;
+                    }).join('');
+                }
+                
+                if (tab === 'export') {
+                    updateExportStatus();
+                    updatePreview();
+                }
+            };
+        })(switchTab);
+
+        function updateExportStatus() {
+            document.getElementById('exportStatus').textContent = `${chapters.length} / ${outline?.chapters?.length || 0}`;
+        }
+
+        function updatePreview() {
+            const container = document.getElementById('previewContent');
+            if (chapters.length === 0) {
+                container.innerHTML = '<p class="text-slate-400">Немає згенерованих розділів</p>';
+                return;
+            }
+            
+            container.innerHTML = chapters.map(ch => `
+                <div class="mb-6">
+                    <h4 class="text-lg font-bold text-amber-400 mb-2">Розділ ${ch.number}: ${ch.title}</h4>
+                    <p class="whitespace-pre-wrap text-slate-300">${ch.content}</p>
+                </div>
+            `).join('');
+        }
+
+        // Експорт
+        function exportBook(format) {
+            if (chapters.length === 0) {
+                alert('⚠️ Немає розділів для експорту!');
+                return;
+            }
+
+            const settings = Storage.load('settings');
+            const title = settings.title || 'Книга';
+
+            if (format === 'txt') {
+                let content = `${title}\n${'='.repeat(title.length)}\n\n`;
+                chapters.forEach(ch => {
+                    content += `\n\nРОЗДІЛ ${ch.number}: ${ch.title}\n${'-'.repeat(50)}\n\n${ch.content}\n`;
+                });
+                download(content, `${title}.txt`, 'text/plain');
+            } else if (format === 'html') {
+                let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
 <style>body{max-width:800px;margin:40px auto;font-family:Georgia,serif;line-height:1.8;padding:20px}
 h1{text-align:center;border-bottom:2px solid #333}h2{margin-top:60px}</style>
-</head><body><h1>${book.title}</h1>`;
-    
-    book.chapters?.forEach(ch => {
-      html += `<h2>Розділ ${ch.number}: ${ch.title}</h2><div>${ch.content?.replace(/\n/g, '<br>')}</div>`;
-    });
-    
-    return html + '</body></html>';
-  },
-  
-  toEPUB(book) {
-    // Simplified EPUB structure
-    const content = this.toHTML(book);
-    return new Blob([content], { type: 'application/epub+zip' });
-  },
-  
-  download(content, filename, type = 'text/plain') {
-    const blob = new Blob([content], { type });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-};
+</head><body><h1>${title}</h1>`;
+                chapters.forEach(ch => {
+                    html += `<h2>Розділ ${ch.number}: ${ch.title}</h2><div>${ch.content.replace(/\n/g, '<br>')}</div>`;
+                });
+                html += '</body></html>';
+                download(html, `${title}.html`, 'text/html');
+            } else if (format === 'epub') {
+                let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1>`;
+                chapters.forEach(ch => {
+                    html += `<h2>Розділ ${ch.number}: ${ch.title}</h2><p>${ch.content.replace(/\n/g, '<br>')}</p>`;
+                });
+                html += '</body></html>';
+                download(html, `${title}.epub`, 'application/epub+zip');
+            }
+        }
 
-// Головний компонент
-export default function AIWriter() {
-  const [activeTab, setActiveTab] = useState('setup');
-  const [apiKey, setApiKey] = useState('');
-  const [bookParams, setBookParams] = useState({
-    title: '',
-    genre: '',
-    style: '',
-    characters: '',
-    world: '',
-    mainIdea: '',
-    conflict: '',
-    chapters: 10
-  });
-  
-  const [settings, setSettings] = useState({
-    temperature: 0.9,
-    topK: 40,
-    topP: 0.95,
-    maxTokens: 8000,
-    style: 'поетичний',
-    poetryLevel: 7,
-    chapterLength: 2000
-  });
-  
-  const [outline, setOutline] = useState(null);
-  const [chapters, setChapters] = useState([]);
-  const [generating, setGenerating] = useState(false);
-  const [context, setContext] = useState({});
-  
-  useEffect(() => {
-    const savedKey = StorageManager.load('apiKey');
-    const savedSettings = StorageManager.load('settings');
-    const savedBook = StorageManager.load('currentBook');
-    
-    if (savedKey) setApiKey(savedKey);
-    if (savedSettings) setSettings(savedSettings);
-    if (savedBook) {
-      setBookParams(savedBook.params);
-      setOutline(savedBook.outline);
-      setChapters(savedBook.chapters || []);
-    }
-  }, []);
-  
-  const saveProgress = () => {
-    StorageManager.save('apiKey', apiKey);
-    StorageManager.save('settings', settings);
-    StorageManager.save('currentBook', { params: bookParams, outline, chapters });
-  };
-  
-  const generateOutline = async () => {
-    if (!apiKey) {
-      alert('Введіть API ключ!');
-      return;
-    }
-    
-    setGenerating(true);
-    try {
-      const result = await OutlineGenerator.generate(apiKey, bookParams, settings);
-      const parsed = JSON.parse(result.match(/\{[\s\S]*\}/)?.[0] || '{}');
-      setOutline(parsed);
-      saveProgress();
-    } catch (error) {
-      alert(`Помилка: ${error.message}`);
-    }
-    setGenerating(false);
-  };
-  
-  const generateChapter = async (chapterInfo) => {
-    setGenerating(true);
-    try {
-      const content = await ChapterGenerator.generate(apiKey, chapterInfo, context, settings);
-      const newChapter = { ...chapterInfo, content };
-      setChapters(prev => [...prev, newChapter]);
-      
-      // Оновлення контексту
-      setContext(prev => ({
-        ...prev,
-        lastChapter: chapterInfo.number,
-        events: [...(prev.events || []), ...chapterInfo.keyEvents]
-      }));
-      
-      saveProgress();
-    } catch (error) {
-      alert(`Помилка: ${error.message}`);
-    }
-    setGenerating(false);
-  };
-  
-  const exportBook = (format) => {
-    const book = { title: bookParams.title, chapters };
-    
-    switch(format) {
-      case 'txt':
-        BookExporter.download(BookExporter.toTXT(book), `${bookParams.title}.txt`);
-        break;
-      case 'html':
-        BookExporter.download(BookExporter.toHTML(book), `${bookParams.title}.html`, 'text/html');
-        break;
-      case 'epub':
-        BookExporter.download(BookExporter.toHTML(book), `${bookParams.title}.epub`, 'application/epub+zip');
-        break;
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 to-slate-800 text-white p-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex items-center gap-3 mb-8">
-          <Book className="w-10 h-10 text-amber-400" />
-          <h1 className="text-4xl font-bold">ШІ-Письменник</h1>
-        </div>
-        
-        {/* Навігація */}
-        <div className="flex gap-2 mb-6 flex-wrap">
-          {['setup', 'outline', 'generate', 'export'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-6 py-2 rounded-lg font-semibold transition ${
-                activeTab === tab 
-                  ? 'bg-amber-500 text-black' 
-                  : 'bg-slate-700 hover:bg-slate-600'
-              }`}
-            >
-              {tab === 'setup' && '1. Налаштування'}
-              {tab === 'outline' && '2. Структура'}
-              {tab === 'generate' && '3. Генерація'}
-              {tab === 'export' && '4. Експорт'}
-            </button>
-          ))}
-        </div>
-
-        {/* Налаштування */}
-        {activeTab === 'setup' && (
-          <div className="space-y-6">
-            <div className="bg-slate-800 p-6 rounded-lg">
-              <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                <Settings className="w-6 h-6" />
-                API Налаштування
-              </h2>
-              
-              <label className="block mb-2 text-sm">Gemini API Key:</label>
-              <input
-                type="password"
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                className="w-full bg-slate-700 p-3 rounded mb-4"
-                placeholder="AIza..."
-              />
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block mb-2 text-sm">Temperature:</label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.1"
-                    value={settings.temperature}
-                    onChange={(e) => setSettings({...settings, temperature: parseFloat(e.target.value)})}
-                    className="w-full"
-                  />
-                  <span className="text-xs">{settings.temperature}</span>
-                </div>
-                
-                <div>
-                  <label className="block mb-2 text-sm">Рівень поетичності:</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="10"
-                    value={settings.poetryLevel}
-                    onChange={(e) => setSettings({...settings, poetryLevel: parseInt(e.target.value)})}
-                    className="w-full"
-                  />
-                  <span className="text-xs">{settings.poetryLevel}/10</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="bg-slate-800 p-6 rounded-lg">
-              <h2 className="text-2xl font-bold mb-4">Параметри книги</h2>
-              
-              <div className="grid gap-4">
-                <input
-                  placeholder="Назва книги"
-                  value={bookParams.title}
-                  onChange={(e) => setBookParams({...bookParams, title: e.target.value})}
-                  className="bg-slate-700 p-3 rounded"
-                />
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <input
-                    placeholder="Жанр"
-                    value={bookParams.genre}
-                    onChange={(e) => setBookParams({...bookParams, genre: e.target.value})}
-                    className="bg-slate-700 p-3 rounded"
-                  />
-                  
-                  <input
-                    placeholder="Стиль"
-                    value={bookParams.style}
-                    onChange={(e) => setBookParams({...bookParams, style: e.target.value})}
-                    className="bg-slate-700 p-3 rounded"
-                  />
-                </div>
-                
-                <textarea
-                  placeholder="Персонажі (опис, характер, мотивація)"
-                  value={bookParams.characters}
-                  onChange={(e) => setBookParams({...bookParams, characters: e.target.value})}
-                  className="bg-slate-700 p-3 rounded h-24"
-                />
-                
-                <textarea
-                  placeholder="Світ/сеттінг"
-                  value={bookParams.world}
-                  onChange={(e) => setBookParams({...bookParams, world: e.target.value})}
-                  className="bg-slate-700 p-3 rounded h-24"
-                />
-                
-                <textarea
-                  placeholder="Головна ідея книги"
-                  value={bookParams.mainIdea}
-                  onChange={(e) => setBookParams({...bookParams, mainIdea: e.target.value})}
-                  className="bg-slate-700 p-3 rounded h-24"
-                />
-                
-                <textarea
-                  placeholder="Центральний конфлікт"
-                  value={bookParams.conflict}
-                  onChange={(e) => setBookParams({...bookParams, conflict: e.target.value})}
-                  className="bg-slate-700 p-3 rounded h-24"
-                />
-                
-                <div>
-                  <label className="block mb-2">Кількість розділів: {bookParams.chapters}</label>
-                  <input
-                    type="range"
-                    min="3"
-                    max="50"
-                    value={bookParams.chapters}
-                    onChange={(e) => setBookParams({...bookParams, chapters: parseInt(e.target.value)})}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-              
-              <button
-                onClick={saveProgress}
-                className="mt-4 bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg flex items-center gap-2"
-              >
-                <Save className="w-5 h-5" />
-                Зберегти налаштування
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Структура */}
-        {activeTab === 'outline' && (
-          <div className="bg-slate-800 p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Структура книги</h2>
-            
-            {!outline ? (
-              <button
-                onClick={generateOutline}
-                disabled={generating}
-                className="bg-amber-500 hover:bg-amber-600 text-black px-6 py-3 rounded-lg flex items-center gap-2 disabled:opacity-50"
-              >
-                <Play className="w-5 h-5" />
-                {generating ? 'Генерація...' : 'Згенерувати outline'}
-              </button>
-            ) : (
-              <div className="space-y-4">
-                {outline.chapters?.map((ch, i) => (
-                  <div key={i} className="bg-slate-700 p-4 rounded">
-                    <h3 className="font-bold text-lg mb-2">
-                      Розділ {ch.number}: {ch.title}
-                    </h3>
-                    <p className="text-sm text-slate-300 mb-2">{ch.summary}</p>
-                    {ch.keyEvents && (
-                      <div className="text-xs text-amber-400">
-                        Події: {ch.keyEvents.join(', ')}
-                      </div>
-                    )}
-                  </div>
-                ))}
-                
-                <button
-                  onClick={() => setOutline(null)}
-                  className="bg-red-600 hover:bg-red-700 px-4 py-2 rounded"
-                >
-                  Перегенерувати
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Генерація */}
-        {activeTab === 'generate' && (
-          <div className="bg-slate-800 p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4">Генерація розділів</h2>
-            
-            {!outline ? (
-              <p className="text-slate-400">Спочатку створіть outline на вкладці "Структура"</p>
-            ) : (
-              <div className="space-y-4">
-                {outline.chapters?.map((ch, i) => {
-                  const generated = chapters.find(c => c.number === ch.number);
-                  
-                  return (
-                    <div key={i} className="bg-slate-700 p-4 rounded">
-                      <div className="flex justify-between items-center mb-2">
-                        <h3 className="font-bold">Розділ {ch.number}: {ch.title}</h3>
-                        
-                        {!generated ? (
-                          <button
-                            onClick={() => generateChapter(ch)}
-                            disabled={generating}
-                            className="bg-amber-500 hover:bg-amber-600 text-black px-4 py-2 rounded text-sm disabled:opacity-50"
-                          >
-                            {generating ? 'Генерація...' : 'Згенерувати'}
-                          </button>
-                        ) : (
-                          <span className="text-green-400 text-sm">✓ Готово</span>
-                        )}
-                      </div>
-                      
-                      {generated && (
-                        <div className="mt-2 text-sm text-slate-300 max-h-40 overflow-y-auto">
-                          {generated.content?.substring(0, 500)}...
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Експорт */}
-        {activeTab === 'export' && (
-          <div className="bg-slate-800 p-6 rounded-lg">
-            <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-              <Download className="w-6 h-6" />
-              Експорт книги
-            </h2>
-            
-            <p className="mb-4 text-slate-300">
-              Згенеровано розділів: {chapters.length} / {outline?.chapters?.length || 0}
-            </p>
-            
-            {chapters.length > 0 ? (
-              <div className="flex gap-4 flex-wrap">
-                <button
-                  onClick={() => exportBook('txt')}
-                  className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg flex items-center gap-2"
-                >
-                  <FileText className="w-5 h-5" />
-                  Завантажити TXT
-                </button>
-                
-                <button
-                  onClick={() => exportBook('html')}
-                  className="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg flex items-center gap-2"
-                >
-                  <FileText className="w-5 h-5" />
-                  Завантажити HTML
-                </button>
-                
-                <button
-                  onClick={() => exportBook('epub')}
-                  className="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg flex items-center gap-2"
-                >
-                  <FileText className="w-5 h-5" />
-                  Завантажити EPUB
-                </button>
-              </div>
-            ) : (
-              <p className="text-slate-400">Згенеруйте розділи для експорту</p>
-            )}
-            
-            {chapters.length > 0 && (
-              <div className="mt-8">
-                <h3 className="text-xl font-bold mb-4">Попередній перегляд:</h3>
-                <div className="bg-slate-900 p-6 rounded max-h-96 overflow-y-auto">
-                  {chapters.map((ch, i) => (
-                    <div key={i} className="mb-6">
-                      <h4 className="text-lg font-bold text-amber-400 mb-2">
-                        Розділ {ch.number}: {ch.title}
-                      </h4>
-                      <p className="whitespace-pre-wrap text-slate-300">{ch.content}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
+        function download(content, filename, type) {
+            const blob = new Blob([content], { type });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+    </script>
+</body>
+</html>
