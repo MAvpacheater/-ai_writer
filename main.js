@@ -61,12 +61,11 @@ function handleProviderChange(e) {
     
     if (provider === 'gemini') {
         modelSelect.innerHTML = `
-            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Experimental (рекомендовано)</option>
-            <option value="gemini-exp-1206">Gemini Experimental 1206</option>
-            <option value="gemini-2.0-flash-thinking-exp-1219">Gemini 2.0 Flash Thinking</option>
-            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-            <option value="gemini-1.5-flash-8b">Gemini 1.5 Flash 8B</option>
+            <option value="gemini-3-pro">Gemini 3 pro</option>
+            <option value="gemini-2.5-flash-lite">gemini 2.5 flash-lite</option>
+            <option value="gemini-2.5-flash-live">gemini 2.5 flash-live</option>
+            <option value="gemini-2.0-flash-live">gemini 2.0 flash-live</option>
+            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
         `;
     } else if (provider === 'openai') {
         modelSelect.innerHTML = `
