@@ -61,9 +61,12 @@ function handleProviderChange(e) {
     
     if (provider === 'gemini') {
         modelSelect.innerHTML = `
-            <option value="gemini-2.0-flash">Gemini 2.0 Flash (рекомендовано)</option>
-            <option value="gemini-3.0-pro">Gemini 3 Pro</option>
-            <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Experimental (рекомендовано)</option>
+            <option value="gemini-exp-1206">Gemini Experimental 1206</option>
+            <option value="gemini-2.0-flash-thinking-exp-1219">Gemini 2.0 Flash Thinking</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+            <option value="gemini-1.5-flash-8b">Gemini 1.5 Flash 8B</option>
         `;
     } else if (provider === 'openai') {
         modelSelect.innerHTML = `
@@ -188,6 +191,45 @@ function switchTab(tab) {
     }
 }
 
+// Escape JSON string - КРИТИЧНО для уникнення помилок
+function escapeJsonString(str) {
+    if (!str) return '';
+    return str
+        .replace(/\\/g, '\\\\')
+        .replace(/"/g, '\\"')
+        .replace(/\n/g, '\\n')
+        .replace(/\r/g, '\\r')
+        .replace(/\t/g, '\\t')
+        .replace(/\f/g, '\\f')
+        .replace(/\b/g, '\\b');
+}
+
+// Clean JSON response
+function cleanJsonResponse(text) {
+    if (!text) return null;
+    
+    // Видаляємо markdown
+    let cleaned = text
+        .replace(/```json\s*/gi, '')
+        .replace(/```\s*/g, '')
+        .trim();
+    
+    // Шукаємо JSON об'єкт
+    const match = cleaned.match(/\{[\s\S]*\}/);
+    if (!match) return null;
+    
+    let jsonStr = match[0];
+    
+    // Видаляємо коментарі
+    jsonStr = jsonStr.replace(/\/\/.*$/gm, '');
+    jsonStr = jsonStr.replace(/\/\*[\s\S]*?\*\//g, '');
+    
+    // Виправляємо розриви рядків у строках
+    jsonStr = jsonStr.replace(/"\s*\n\s*"/g, '" "');
+    
+    return jsonStr;
+}
+
 // API Call
 async function callAPI(prompt) {
     const apiKey = document.getElementById('apiKey').value;
@@ -222,7 +264,10 @@ async function callAPI(prompt) {
         });
         
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || 'API error');
+        if (!response.ok) {
+            const errorMsg = data.error?.message || JSON.stringify(data);
+            throw new Error(`Gemini API: ${errorMsg}`);
+        }
         return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
         
     } else if (provider === 'openai') {
@@ -242,7 +287,10 @@ async function callAPI(prompt) {
         });
         
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || 'API error');
+        if (!response.ok) {
+            const errorMsg = data.error?.message || JSON.stringify(data);
+            throw new Error(`OpenAI API: ${errorMsg}`);
+        }
         return data.choices?.[0]?.message?.content || '';
         
     } else if (provider === 'anthropic') {
@@ -263,7 +311,10 @@ async function callAPI(prompt) {
         });
         
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || 'API error');
+        if (!response.ok) {
+            const errorMsg = data.error?.message || JSON.stringify(data);
+            throw new Error(`Anthropic API: ${errorMsg}`);
+        }
         return data.content?.[0]?.text || '';
         
     } else if (provider === 'custom') {
@@ -285,7 +336,9 @@ async function callAPI(prompt) {
         });
         
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || 'API error');
+        if (!response.ok) {
+            throw new Error(`Custom API: ${JSON.stringify(data)}`);
+        }
         return data.choices?.[0]?.message?.content || data.content || '';
     }
 }
@@ -297,11 +350,12 @@ async function testAPI() {
         const result = await callAPI('Напиши одне речення українською.');
         showNotification('✅ API працює!\n\nВідповідь: ' + result.substring(0, 200), 'success');
     } catch (error) {
+        console.error('API Test Error:', error);
         showNotification('❌ Помилка API:\n' + error.message, 'error');
     }
 }
 
-// Generate Outline - ВИПРАВЛЕНО
+// Generate Outline - ПОВНІСТЮ ВИПРАВЛЕНО
 async function generateOutline() {
     const btn = document.getElementById('btnOutline');
     btn.disabled = true;
@@ -309,64 +363,98 @@ async function generateOutline() {
 
     try {
         const settings = Storage.load('settings');
-        const prompt = `Створи детальний outline книги у форматі JSON:
-Назва: ${settings.title}
-Жанр: ${settings.genre}
-Стиль: ${settings.style}
-Тональність: ${settings.tone}
-Персонажі: ${settings.characters}
-Світ: ${settings.world}
-Головна ідея: ${settings.mainIdea}
-Конфлікт: ${settings.conflict}
-Кількість розділів: ${settings.chapters}
+        
+        if (!settings.title || !settings.genre) {
+            throw new Error('Заповніть назву та жанр книги!');
+        }
+        
+        const prompt = `Створи детальний outline книги. Дуже важливо повернути ТІЛЬКИ валідний JSON без жодних пояснень.
 
-КРИТИЧНО ВАЖЛИВО: Поверни ТІЛЬКИ валідний JSON без жодних пояснень, коментарів чи markdown форматування.
-Формат:
-{
-  "chapters": [
-    {"number": 1, "title": "Назва розділу", "summary": "Детальний опис що відбувається", "keyEvents": ["подія1", "подія2", "подія3"]}
-  ]
-}`;
+Параметри книги:
+- Назва: ${settings.title}
+- Жанр: ${settings.genre}
+- Стиль: ${settings.style || 'художній'}
+- Тональність: ${settings.tone || 'нейтральна'}
+- Персонажі: ${settings.characters || 'не вказано'}
+- Світ: ${settings.world || 'не вказано'}
+- Головна ідея: ${settings.mainIdea || 'не вказано'}
+- Конфлікт: ${settings.conflict || 'не вказано'}
+- Кількість розділів: ${settings.chapters || 10}
 
+ФОРМАТ ВІДПОВІДІ - повинен бути ТІЛЬКИ цей JSON і нічого більше:
+{"chapters":[{"number":1,"title":"Назва розділу","summary":"Детальний опис що відбувається у розділі","keyEvents":["подія 1","подія 2","подія 3"]}]}
+
+Створи ${settings.chapters || 10} розділів. Кожен розділ повинен мати номер, назву, опис та 2-4 ключові події.`;
+
+        console.log('Sending prompt...');
         const result = await callAPI(prompt);
-        console.log('API Response:', result);
+        console.log('Raw API Response:', result);
         
-        // Видаляємо markdown форматування та зайві символи
-        let cleanResult = result
-            .replace(/```json/gi, '')
-            .replace(/```/g, '')
-            .trim();
-        
-        // Знаходимо JSON об'єкт
-        const jsonMatch = cleanResult.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-            throw new Error('API не повернув валідний JSON. Відповідь: ' + result.substring(0, 200));
+        // Очищаємо відповідь
+        const cleanedJson = cleanJsonResponse(result);
+        if (!cleanedJson) {
+            throw new Error('API не повернув JSON. Відповідь: ' + result.substring(0, 300));
         }
         
-        outline = JSON.parse(jsonMatch[0]);
+        console.log('Cleaned JSON:', cleanedJson);
         
-        // Перевірка структури
-        if (!outline.chapters || !Array.isArray(outline.chapters) || outline.chapters.length === 0) {
-            throw new Error('Невірна структура outline. Спробуйте ще раз.');
+        // Парсимо JSON
+        try {
+            outline = JSON.parse(cleanedJson);
+        } catch (parseError) {
+            console.error('JSON Parse Error:', parseError);
+            console.error('Attempted to parse:', cleanedJson.substring(0, 500));
+            throw new Error(`Помилка парсингу JSON: ${parseError.message}. Перевірте відповідь API.`);
         }
+        
+        // Валідація структури
+        if (!outline || typeof outline !== 'object') {
+            throw new Error('Outline не є об\'єктом');
+        }
+        
+        if (!outline.chapters || !Array.isArray(outline.chapters)) {
+            throw new Error('Відсутній масив chapters');
+        }
+        
+        if (outline.chapters.length === 0) {
+            throw new Error('Масив chapters порожній');
+        }
+        
+        // Валідація кожного розділу
+        outline.chapters = outline.chapters.map((ch, idx) => {
+            return {
+                number: ch.number || (idx + 1),
+                title: ch.title || `Розділ ${idx + 1}`,
+                summary: ch.summary || 'Опис відсутній',
+                keyEvents: Array.isArray(ch.keyEvents) ? ch.keyEvents : []
+            };
+        });
+        
+        console.log('Validated outline:', outline);
         
         Storage.save('currentBook', { outline, chapters });
         displayOutline();
         updateHeaderStats();
-        showNotification('✅ Outline згенеровано! Розділів: ' + outline.chapters.length, 'success');
+        showNotification(`✅ Outline згенеровано!\nРозділів: ${outline.chapters.length}`, 'success');
+        
     } catch (error) {
-        console.error('Outline generation error:', error);
-        showNotification('❌ Помилка: ' + error.message + '\n\nСпробуйте ще раз або змініть параметри.', 'error');
+        console.error('Outline Generation Error:', error);
+        showNotification(`❌ Помилка генерації:\n${error.message}\n\nПорада: Спробуйте змінити модель або зменшити кількість розділів.`, 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = '▶️ Згенерувати outline';
     }
-
-    btn.disabled = false;
-    btn.textContent = '▶️ Згенерувати outline';
 }
 
 // Display Outline
 function displayOutline() {
     const container = document.getElementById('outlineContent');
     if (!container) return;
+    
+    if (!outline || !outline.chapters) {
+        container.innerHTML = '<p style="color: #a0a0b0;">Outline ще не створено</p>';
+        return;
+    }
     
     container.innerHTML = outline.chapters.map(ch => `
         <div class="outline-item">
@@ -385,33 +473,61 @@ async function generateChapter(chapterInfo, btnId) {
 
     try {
         const settings = Storage.load('settings');
-        const prompt = `Напиши повний текст розділу ${chapterInfo.number}: "${chapterInfo.title}"
+        
+        const contextInfo = chapters.length > 0 
+            ? `Попередні події: ${context.events?.slice(-5).join(', ') || 'немає'}`
+            : 'Це перший розділ';
+        
+        const prompt = `Напиши повний художній текст розділу книги.
 
-Контекст світу: ${JSON.stringify(context)}
-План розділу: ${chapterInfo.summary}
-Ключові події: ${chapterInfo.keyEvents?.join(', ')}
+РОЗДІЛ ${chapterInfo.number}: "${chapterInfo.title}"
+
+Контекст:
+${contextInfo}
+
+План цього розділу:
+${chapterInfo.summary}
+
+Ключові події які мають статися:
+${chapterInfo.keyEvents?.join(', ') || 'немає'}
 
 Параметри написання:
+- Жанр: ${settings.genre}
 - Стиль: ${settings.style}
 - Тональність: ${settings.tone}
 - Рівень поетичності: ${settings.poetryLevel}/10
-- Бажана довжина: ~${settings.chapterLength} слів
-- Жанр: ${settings.genre}
+- Бажана довжина: приблизно ${settings.chapterLength} слів
+- Персонажі: ${settings.characters}
 
-Напиши ТІЛЬКИ текст розділу без заголовків та пояснень. Створи атмосферний, захоплюючий текст.`;
+ВАЖЛИВО: Напиши ТІЛЬКИ художній текст розділу без заголовків, номерів та будь-яких мета-коментарів. Починай відразу з тексту історії. Створи атмосферний, захоплюючий текст.`;
 
         const content = await callAPI(prompt);
-        chapters.push({ ...chapterInfo, content });
+        
+        if (!content || content.length < 100) {
+            throw new Error('Отриманий текст занадто короткий');
+        }
+        
+        chapters.push({ 
+            number: chapterInfo.number,
+            title: chapterInfo.title,
+            content: content.trim()
+        });
         
         context.lastChapter = chapterInfo.number;
         context.events = [...(context.events || []), ...(chapterInfo.keyEvents || [])];
         
         Storage.save('currentBook', { outline, chapters });
+        
         btn.textContent = '✅ Готово';
         updateHeaderStats();
         updateExportStatus();
-        showNotification('✅ Розділ згенеровано!', 'success');
+        showNotification(`✅ Розділ ${chapterInfo.number} згенеровано!`, 'success');
+        
+        // Оновлюємо відображення
+        displayGenerateContent();
+        
     } catch (error) {
+        console.error('Chapter Generation Error:', error);
         showNotification('❌ Помилка: ' + error.message, 'error');
         btn.disabled = false;
         btn.textContent = 'Згенерувати';
@@ -423,25 +539,39 @@ function displayGenerateContent() {
     const container = document.getElementById('generateContent');
     if (!container) return;
     
-    if (!outline) {
-        container.innerHTML = '<p class="text-secondary">Спочатку створіть outline</p>';
+    if (!outline || !outline.chapters) {
+        container.innerHTML = '<p style="color: #a0a0b0;">Спочатку створіть outline на вкладці "Структура"</p>';
         return;
     }
     
     container.innerHTML = outline.chapters.map((ch, i) => {
         const generated = chapters.find(c => c.number === ch.number);
-        const chapterData = JSON.stringify(ch).replace(/"/g, '&quot;');
+        
+        // Безпечне escape для JSON у HTML атрибуті
+        const safeChapter = {
+            number: ch.number,
+            title: escapeJsonString(ch.title),
+            summary: escapeJsonString(ch.summary),
+            keyEvents: ch.keyEvents || []
+        };
+        
+        const chapterJson = JSON.stringify(safeChapter)
+            .replace(/'/g, '&#39;')
+            .replace(/"/g, '&quot;');
         
         return `
             <div class="chapter-item">
                 <div class="chapter-header">
                     <h3 class="chapter-title">Розділ ${ch.number}: ${ch.title}</h3>
                     ${!generated 
-                        ? `<button onclick="generateChapter(${chapterData}, 'btn-ch-${i}')" id="btn-ch-${i}" class="btn btn-primary">Згенерувати</button>`
+                        ? `<button onclick='generateChapter(${chapterJson}, "btn-ch-${i}")' id="btn-ch-${i}" class="btn btn-primary">Згенерувати</button>`
                         : '<span class="chapter-status">✅ Готово</span>'
                     }
                 </div>
-                ${generated ? `<div class="chapter-preview">${generated.content.substring(0, 500)}...</div>` : ''}
+                ${generated 
+                    ? `<div class="chapter-preview">${generated.content.substring(0, 500)}...</div>` 
+                    : `<p style="color: #666; font-size: 0.9rem; margin-top: 10px;">${ch.summary}</p>`
+                }
             </div>
         `;
     }).join('');
@@ -451,7 +581,9 @@ function displayGenerateContent() {
 function updateExportStatus() {
     const statusElement = document.getElementById('exportStatus');
     const headerElement = document.getElementById('headerChaptersCount');
-    const status = `${chapters.length} / ${outline?.chapters?.length || 0}`;
+    const total = outline?.chapters?.length || 0;
+    const completed = chapters.length;
+    const status = `${completed} / ${total}`;
     
     if (statusElement) statusElement.textContent = status;
     if (headerElement) headerElement.textContent = status;
@@ -468,16 +600,18 @@ function updatePreview() {
     if (!container) return;
     
     if (chapters.length === 0) {
-        container.innerHTML = '<p class="text-secondary">Немає згенерованих розділів</p>';
+        container.innerHTML = '<p style="color: #a0a0b0;">Немає згенерованих розділів</p>';
         return;
     }
     
-    container.innerHTML = chapters.map(ch => `
-        <div class="preview-chapter">
-            <h4 class="preview-chapter-title">Розділ ${ch.number}: ${ch.title}</h4>
-            <p class="preview-chapter-content">${ch.content}</p>
-        </div>
-    `).join('');
+    container.innerHTML = chapters
+        .sort((a, b) => a.number - b.number)
+        .map(ch => `
+            <div class="preview-chapter">
+                <h4 class="preview-chapter-title">Розділ ${ch.number}: ${ch.title}</h4>
+                <p class="preview-chapter-content">${ch.content}</p>
+            </div>
+        `).join('');
 }
 
 // Export Book
@@ -489,43 +623,70 @@ function exportBook(format) {
 
     const settings = Storage.load('settings');
     const title = settings.title || 'Книга';
+    
+    // Сортуємо розділи за номером
+    const sortedChapters = [...chapters].sort((a, b) => a.number - b.number);
 
     if (format === 'txt') {
         let content = `${title}\n${'='.repeat(title.length)}\n\n`;
-        chapters.forEach(ch => {
+        sortedChapters.forEach(ch => {
             content += `\n\nРОЗДІЛ ${ch.number}: ${ch.title}\n${'-'.repeat(50)}\n\n${ch.content}\n`;
         });
         download(content, `${title}.txt`, 'text/plain');
+        
     } else if (format === 'html') {
-        let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
-<style>body{max-width:800px;margin:40px auto;font-family:Georgia,serif;line-height:1.8;padding:20px;background:#f5f5f5}
-h1{text-align:center;border-bottom:3px solid #333;padding-bottom:20px}h2{margin-top:60px;color:#333}</style>
-</head><body><h1>${title}</h1>`;
-        chapters.forEach(ch => {
-            html += `<h2>Розділ ${ch.number}: ${ch.title}</h2><div>${ch.content.replace(/\n/g, '<br>')}</div>`;
+        let html = `<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <title>${title}</title>
+    <style>
+        body { max-width: 800px; margin: 40px auto; font-family: Georgia, serif; line-height: 1.8; padding: 20px; background: #f5f5f5; }
+        h1 { text-align: center; border-bottom: 3px solid #333; padding-bottom: 20px; }
+        h2 { margin-top: 60px; color: #333; page-break-before: always; }
+        p { text-indent: 2em; margin: 1em 0; text-align: justify; }
+    </style>
+</head>
+<body>
+    <h1>${title}</h1>`;
+        sortedChapters.forEach(ch => {
+            const paragraphs = ch.content.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('\n');
+            html += `\n<h2>Розділ ${ch.number}: ${ch.title}</h2>\n${paragraphs}`;
         });
-        html += '</body></html>';
+        html += '\n</body>\n</html>';
         download(html, `${title}.html`, 'text/html');
+        
     } else if (format === 'epub') {
-        let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1>`;
-        chapters.forEach(ch => {
-            html += `<h2>Розділ ${ch.number}: ${ch.title}</h2><p>${ch.content.replace(/\n/g, '<br>')}</p>`;
+        // Простий EPUB як HTML
+        let html = `<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="utf-8">
+    <title>${title}</title>
+</head>
+<body>
+    <h1>${title}</h1>`;
+        sortedChapters.forEach(ch => {
+            const paragraphs = ch.content.split('\n').filter(p => p.trim()).map(p => `<p>${p}</p>`).join('\n');
+            html += `\n<h2>Розділ ${ch.number}: ${ch.title}</h2>\n${paragraphs}`;
         });
-        html += '</body></html>';
+        html += '\n</body>\n</html>';
         download(html, `${title}.epub`, 'application/epub+zip');
     }
     
-    showNotification('✅ Книга експортована!', 'success');
+    showNotification(`✅ Книга "${title}" експортована у форматі ${format.toUpperCase()}!`, 'success');
 }
 
 // Download File
 function download(content, filename, type) {
-    const blob = new Blob([content], { type });
+    const blob = new Blob([content], { type: type + ';charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = filename;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
 }
 
