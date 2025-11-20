@@ -4,623 +4,244 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ШІ-Письменник</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <style>
-        body { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%); min-height: 100vh; }
-        .tab-active { background: #f59e0b; color: #000; }
-        .tab-inactive { background: #334155; }
-        .tab-inactive:hover { background: #475569; }
-    </style>
+    <link rel="stylesheet" href="main.css">
 </head>
-<body class="text-white">
-    <div class="max-w-6xl mx-auto p-4">
-        <div class="flex items-center gap-3 mb-8">
-            <svg class="w-10 h-10 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-            </svg>
-            <h1 class="text-4xl font-bold">ШІ-Письменник</h1>
-        </div>
-
-        <!-- Навігація -->
-        <div class="flex gap-2 mb-6 flex-wrap">
-            <button onclick="switchTab('setup')" id="tab-setup" class="tab-active px-6 py-2 rounded-lg font-semibold">1. Налаштування</button>
-            <button onclick="switchTab('outline')" id="tab-outline" class="tab-inactive px-6 py-2 rounded-lg font-semibold">2. Структура</button>
-            <button onclick="switchTab('generate')" id="tab-generate" class="tab-inactive px-6 py-2 rounded-lg font-semibold">3. Генерація</button>
-            <button onclick="switchTab('export')" id="tab-export" class="tab-inactive px-6 py-2 rounded-lg font-semibold">4. Експорт</button>
-        </div>
-
-        <!-- Вкладка: Налаштування -->
-        <div id="content-setup" class="tab-content">
-            <div class="bg-slate-800 p-6 rounded-lg mb-6">
-                <h2 class="text-2xl font-bold mb-4">API Налаштування</h2>
-                
-                <label class="block mb-2 text-sm">API Provider:</label>
-                <select id="apiProvider" class="w-full bg-slate-700 p-3 rounded mb-3">
-                    <option value="gemini">Google Gemini</option>
-                    <option value="openai">OpenAI</option>
-                    <option value="anthropic">Anthropic Claude</option>
-                    <option value="custom">Custom URL</option>
-                </select>
-                
-                <label class="block mb-2 text-sm">Модель:</label>
-                <select id="modelName" class="w-full bg-slate-700 p-3 rounded mb-3">
-                    <option value="gemini-2.0-flash">Gemini 2.0 Flash (рекомендовано)</option>
-                    <option value="gemini-3.0-pro">Gemini 3 Pro</option>
-                    <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                </select>
-                
-                <label class="block mb-2 text-sm">API Key:</label>
-                <input type="password" id="apiKey" class="w-full bg-slate-700 p-3 rounded mb-3" placeholder="AIza... або sk-...">
-                
-                <div id="customUrlBlock" class="hidden mb-3">
-                    <label class="block mb-2 text-sm">Custom API URL:</label>
-                    <input type="text" id="customUrl" class="w-full bg-slate-700 p-3 rounded" placeholder="https://api.example.com/v1/chat/completions">
-                </div>
-                
-                <div class="grid grid-cols-3 gap-4 mb-4">
-                    <div>
-                        <label class="block mb-2 text-sm">Temperature: <span id="tempValue">0.9</span></label>
-                        <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.9" class="w-full">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm">Top P: <span id="topPValue">0.95</span></label>
-                        <input type="range" id="topP" min="0" max="1" step="0.05" value="0.95" class="w-full">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm">Max Tokens: <span id="maxTokensValue">8000</span></label>
-                        <input type="range" id="maxTokens" min="1000" max="32000" step="1000" value="8000" class="w-full">
-                    </div>
-                </div>
-                
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block mb-2 text-sm">Top K: <span id="topKValue">40</span></label>
-                        <input type="range" id="topK" min="1" max="100" value="40" class="w-full">
-                    </div>
-                    <div>
-                        <label class="block mb-2 text-sm">Поетичність: <span id="poetryValue">7</span>/10</label>
-                        <input type="range" id="poetryLevel" min="1" max="10" value="7" class="w-full">
-                    </div>
-                </div>
-                
-                <button onclick="testAPI()" class="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded text-sm">
-                    🧪 Тест API
-                </button>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo">
+                <svg class="logo-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                <h1 class="logo-text">ШІ-Письменник</h1>
             </div>
-
-            <div class="bg-slate-800 p-6 rounded-lg">
-                <h2 class="text-2xl font-bold mb-4">Параметри книги</h2>
-                
-                <input id="title" placeholder="Назва книги" class="w-full bg-slate-700 p-3 rounded mb-3">
-                
-                <div class="grid grid-cols-2 gap-3 mb-3">
-                    <input id="genre" placeholder="Жанр (фентезі, наукова фантастика...)" class="bg-slate-700 p-3 rounded">
-                    <input id="style" placeholder="Стиль (поетичний, епічний, мінімалістичний...)" class="bg-slate-700 p-3 rounded">
+            <div class="header-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Розділів</span>
+                    <span class="stat-value" id="headerChaptersCount">0/0</span>
                 </div>
-                
-                <textarea id="characters" placeholder="Персонажі (опис, характер, мотивація)" class="w-full bg-slate-700 p-3 rounded mb-3 h-24"></textarea>
-                <textarea id="world" placeholder="Світ/сеттінг" class="w-full bg-slate-700 p-3 rounded mb-3 h-24"></textarea>
-                <textarea id="mainIdea" placeholder="Головна ідея книги" class="w-full bg-slate-700 p-3 rounded mb-3 h-24"></textarea>
-                <textarea id="conflict" placeholder="Центральний конфлікт" class="w-full bg-slate-700 p-3 rounded mb-3 h-24"></textarea>
-                
-                <div class="grid grid-cols-2 gap-4 mb-4">
-                    <div>
-                        <label class="block mb-2">Кількість розділів: <span id="chaptersValue">10</span></label>
-                        <input type="range" id="chaptersCount" min="3" max="50" value="10" class="w-full">
+            </div>
+        </header>
+
+        <!-- Navigation -->
+        <nav class="tab-navigation">
+            <button onclick="switchTab('setup')" id="tab-setup" class="tab-btn active">
+                <span class="tab-number">1</span>
+                <span class="tab-text">Налаштування</span>
+            </button>
+            <button onclick="switchTab('outline')" id="tab-outline" class="tab-btn">
+                <span class="tab-number">2</span>
+                <span class="tab-text">Структура</span>
+            </button>
+            <button onclick="switchTab('generate')" id="tab-generate" class="tab-btn">
+                <span class="tab-number">3</span>
+                <span class="tab-text">Генерація</span>
+            </button>
+            <button onclick="switchTab('export')" id="tab-export" class="tab-btn">
+                <span class="tab-number">4</span>
+                <span class="tab-text">Експорт</span>
+            </button>
+        </nav>
+
+        <!-- Tab: Setup -->
+        <div id="content-setup" class="tab-content active">
+            <div class="content-grid">
+                <!-- API Settings -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">🔌 API Налаштування</h2>
                     </div>
-                    <div>
-                        <label class="block mb-2">Довжина розділу: <span id="chapterLengthValue">2000</span> слів</label>
-                        <input type="range" id="chapterLength" min="500" max="5000" step="500" value="2000" class="w-full">
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">API Provider</label>
+                            <select id="apiProvider" class="form-select">
+                                <option value="gemini">Google Gemini</option>
+                                <option value="openai">OpenAI</option>
+                                <option value="anthropic">Anthropic Claude</option>
+                                <option value="custom">Custom URL</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Модель</label>
+                            <select id="modelName" class="form-select">
+                                <option value="gemini-2.0-flash">Gemini 2.0 Flash (рекомендовано)</option>
+                                <option value="gemini-3.0-pro">Gemini 3 Pro</option>
+                                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">API Key</label>
+                            <input type="password" id="apiKey" class="form-input" placeholder="AIza... або sk-...">
+                        </div>
+
+                        <div id="customUrlBlock" class="form-group hidden">
+                            <label class="form-label">Custom API URL</label>
+                            <input type="text" id="customUrl" class="form-input" placeholder="https://api.example.com/v1/chat/completions">
+                        </div>
+
+                        <div class="params-grid">
+                            <div class="form-group">
+                                <label class="form-label">Temperature: <span id="tempValue" class="param-value">0.9</span></label>
+                                <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.9" class="form-range">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Top P: <span id="topPValue" class="param-value">0.95</span></label>
+                                <input type="range" id="topP" min="0" max="1" step="0.05" value="0.95" class="form-range">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Top K: <span id="topKValue" class="param-value">40</span></label>
+                                <input type="range" id="topK" min="1" max="100" value="40" class="form-range">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Max Tokens: <span id="maxTokensValue" class="param-value">8000</span></label>
+                                <input type="range" id="maxTokens" min="1000" max="32000" step="1000" value="8000" class="form-range">
+                            </div>
+                        </div>
+
+                        <button onclick="testAPI()" class="btn btn-secondary">
+                            🧪 Тест API
+                        </button>
                     </div>
                 </div>
-                
-                <div class="mb-4">
-                    <label class="block mb-2 text-sm">Тональність:</label>
-                    <select id="tone" class="w-full bg-slate-700 p-3 rounded">
-                        <option value="neutral">Нейтральна</option>
-                        <option value="dark">Темна</option>
-                        <option value="light">Світла</option>
-                        <option value="epic">Епічна</option>
-                        <option value="ironic">Іронічна</option>
-                        <option value="romantic">Романтична</option>
-                        <option value="philosophical">Філософська</option>
-                    </select>
+
+                <!-- Book Settings -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">📚 Параметри книги</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <label class="form-label">Назва книги</label>
+                            <input id="title" class="form-input" placeholder="Введіть назву...">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label">Жанр</label>
+                                <input id="genre" class="form-input" placeholder="Фентезі, наукова фантастика...">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Стиль</label>
+                                <input id="style" class="form-input" placeholder="Поетичний, епічний...">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Персонажі</label>
+                            <textarea id="characters" class="form-textarea" rows="3" placeholder="Опис персонажів, їх характер та мотивація..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Світ/Сеттінг</label>
+                            <textarea id="world" class="form-textarea" rows="3" placeholder="Опис світу та його особливостей..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Головна ідея</label>
+                            <textarea id="mainIdea" class="form-textarea" rows="3" placeholder="Центральна тема та послання книги..."></textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Конфлікт</label>
+                            <textarea id="conflict" class="form-textarea" rows="3" placeholder="Основний конфлікт та напруга..."></textarea>
+                        </div>
+
+                        <div class="params-grid">
+                            <div class="form-group">
+                                <label class="form-label">Розділів: <span id="chaptersValue" class="param-value">10</span></label>
+                                <input type="range" id="chaptersCount" min="3" max="50" value="10" class="form-range">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Довжина: <span id="chapterLengthValue" class="param-value">2000</span> слів</label>
+                                <input type="range" id="chapterLength" min="500" max="5000" step="500" value="2000" class="form-range">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Поетичність: <span id="poetryValue" class="param-value">7</span>/10</label>
+                                <input type="range" id="poetryLevel" min="1" max="10" value="7" class="form-range">
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Тональність</label>
+                            <select id="tone" class="form-select">
+                                <option value="neutral">Нейтральна</option>
+                                <option value="dark">Темна</option>
+                                <option value="light">Світла</option>
+                                <option value="epic">Епічна</option>
+                                <option value="ironic">Іронічна</option>
+                                <option value="romantic">Романтична</option>
+                                <option value="philosophical">Філософська</option>
+                            </select>
+                        </div>
+
+                        <button onclick="saveSettings()" class="btn btn-primary">
+                            💾 Зберегти налаштування
+                        </button>
+                    </div>
                 </div>
-                
-                <button onclick="saveSettings()" class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg">
-                    💾 Зберегти налаштування
-                </button>
             </div>
         </div>
 
-        <!-- Вкладка: Структура -->
-        <div id="content-outline" class="tab-content hidden">
-            <div class="bg-slate-800 p-6 rounded-lg">
-                <h2 class="text-2xl font-bold mb-4">Структура книги</h2>
-                <button onclick="generateOutline()" id="btnOutline" class="bg-amber-500 hover:bg-amber-600 text-black px-6 py-3 rounded-lg mb-4">
-                    ▶️ Згенерувати outline
-                </button>
-                <div id="outlineContent" class="space-y-4"></div>
-            </div>
-        </div>
-
-        <!-- Вкладка: Генерація -->
-        <div id="content-generate" class="tab-content hidden">
-            <div class="bg-slate-800 p-6 rounded-lg">
-                <h2 class="text-2xl font-bold mb-4">Генерація розділів</h2>
-                <div id="generateContent"></div>
-            </div>
-        </div>
-
-        <!-- Вкладка: Експорт -->
-        <div id="content-export" class="tab-content hidden">
-            <div class="bg-slate-800 p-6 rounded-lg">
-                <h2 class="text-2xl font-bold mb-4">📥 Експорт книги</h2>
-                <p class="mb-4 text-slate-300">Згенеровано розділів: <span id="exportStatus">0 / 0</span></p>
-                
-                <div class="flex gap-4 flex-wrap mb-8">
-                    <button onclick="exportBook('txt')" class="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg">📄 TXT</button>
-                    <button onclick="exportBook('html')" class="bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg">🌐 HTML</button>
-                    <button onclick="exportBook('epub')" class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg">📚 EPUB</button>
+        <!-- Tab: Outline -->
+        <div id="content-outline" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📋 Структура книги</h2>
+                    <button onclick="generateOutline()" id="btnOutline" class="btn btn-primary">
+                        ▶️ Згенерувати outline
+                    </button>
                 </div>
-                
-                <h3 class="text-xl font-bold mb-4">Попередній перегляд:</h3>
-                <div id="previewContent" class="bg-slate-900 p-6 rounded max-h-96 overflow-y-auto"></div>
+                <div class="card-body">
+                    <div id="outlineContent" class="outline-list"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Generate -->
+        <div id="content-generate" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">✍️ Генерація розділів</h2>
+                </div>
+                <div class="card-body">
+                    <div id="generateContent"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab: Export -->
+        <div id="content-export" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">📥 Експорт книги</h2>
+                </div>
+                <div class="card-body">
+                    <div class="export-status">
+                        Згенеровано розділів: <span id="exportStatus" class="status-highlight">0 / 0</span>
+                    </div>
+
+                    <div class="export-buttons">
+                        <button onclick="exportBook('txt')" class="btn btn-secondary">
+                            📄 Експорт TXT
+                        </button>
+                        <button onclick="exportBook('html')" class="btn btn-secondary">
+                            🌐 Експорт HTML
+                        </button>
+                        <button onclick="exportBook('epub')" class="btn btn-secondary">
+                            📚 Експорт EPUB
+                        </button>
+                    </div>
+
+                    <h3 class="preview-title">Попередній перегляд:</h3>
+                    <div id="previewContent" class="preview-box"></div>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        // Модуль: Storage Manager
-        const Storage = {
-            save: (key, data) => localStorage.setItem(key, JSON.stringify(data)),
-            load: (key) => {
-                const data = localStorage.getItem(key);
-                return data ? JSON.parse(data) : null;
-            }
-        };
-
-        // Глобальні змінні
-        let outline = null;
-        let chapters = [];
-        let context = {};
-
-        // Ініціалізація
-        window.addEventListener('DOMContentLoaded', () => {
-            loadSettings();
-            updateSliders();
-        });
-
-        function updateSliders() {
-            const sliders = [
-                ['temperature', 'tempValue'],
-                ['topP', 'topPValue'],
-                ['topK', 'topKValue'],
-                ['maxTokens', 'maxTokensValue'],
-                ['poetryLevel', 'poetryValue'],
-                ['chaptersCount', 'chaptersValue'],
-                ['chapterLength', 'chapterLengthValue']
-            ];
-            
-            sliders.forEach(([id, valueId]) => {
-                document.getElementById(id).addEventListener('input', e => {
-                    document.getElementById(valueId).textContent = e.target.value;
-                });
-            });
-            
-            // Вибір провайдера
-            document.getElementById('apiProvider').addEventListener('change', e => {
-                const provider = e.target.value;
-                const modelSelect = document.getElementById('modelName');
-                const customBlock = document.getElementById('customUrlBlock');
-                
-                modelSelect.innerHTML = '';
-                customBlock.classList.add('hidden');
-                
-                if (provider === 'gemini') {
-                    modelSelect.innerHTML = `
-                        <option value="gemini-2.0-flash">Gemini 2.0 Flash (рекомендовано)</option>
-                        <option value="gemini-3.0-pro">Gemini 3 Pro</option>
-                        <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                    `;
-                } else if (provider === 'openai') {
-                    modelSelect.innerHTML = `
-                        <option value="gpt-4-turbo">GPT-4 Turbo</option>
-                        <option value="gpt-4">GPT-4</option>
-                        <option value="gpt-3.5-turbo">GPT-3.5 Turbo</option>
-                    `;
-                } else if (provider === 'anthropic') {
-                    modelSelect.innerHTML = `
-                        <option value="claude-3-opus-20240229">Claude 3 Opus</option>
-                        <option value="claude-3-sonnet-20240229">Claude 3 Sonnet</option>
-                        <option value="claude-3-haiku-20240307">Claude 3 Haiku</option>
-                    `;
-                } else if (provider === 'custom') {
-                    modelSelect.innerHTML = `<option value="custom">Custom Model</option>`;
-                    customBlock.classList.remove('hidden');
-                }
-            });
-        }
-
-        function loadSettings() {
-            const saved = Storage.load('settings');
-            if (saved) {
-                document.getElementById('apiProvider').value = saved.apiProvider || 'gemini';
-                document.getElementById('apiProvider').dispatchEvent(new Event('change'));
-                document.getElementById('modelName').value = saved.modelName || 'gemini-2.0-flash';
-                document.getElementById('apiKey').value = saved.apiKey || '';
-                document.getElementById('customUrl').value = saved.customUrl || '';
-                document.getElementById('temperature').value = saved.temperature || 0.9;
-                document.getElementById('topP').value = saved.topP || 0.95;
-                document.getElementById('topK').value = saved.topK || 40;
-                document.getElementById('maxTokens').value = saved.maxTokens || 8000;
-                document.getElementById('poetryLevel').value = saved.poetryLevel || 7;
-                document.getElementById('title').value = saved.title || '';
-                document.getElementById('genre').value = saved.genre || '';
-                document.getElementById('style').value = saved.style || '';
-                document.getElementById('characters').value = saved.characters || '';
-                document.getElementById('world').value = saved.world || '';
-                document.getElementById('mainIdea').value = saved.mainIdea || '';
-                document.getElementById('conflict').value = saved.conflict || '';
-                document.getElementById('chaptersCount').value = saved.chapters || 10;
-                document.getElementById('chapterLength').value = saved.chapterLength || 2000;
-                document.getElementById('tone').value = saved.tone || 'neutral';
-                
-                // Оновлюємо всі значення слайдерів
-                ['tempValue', 'topPValue', 'topKValue', 'maxTokensValue', 'poetryValue', 'chaptersValue', 'chapterLengthValue'].forEach(id => {
-                    const inputId = id.replace('Value', '');
-                    const val = document.getElementById(inputId).value;
-                    document.getElementById(id).textContent = val;
-                });
-            }
-            
-            const savedBook = Storage.load('currentBook');
-            if (savedBook) {
-                outline = savedBook.outline;
-                chapters = savedBook.chapters || [];
-            }
-        }
-
-        function saveSettings() {
-            const settings = {
-                apiProvider: document.getElementById('apiProvider').value,
-                modelName: document.getElementById('modelName').value,
-                apiKey: document.getElementById('apiKey').value,
-                customUrl: document.getElementById('customUrl').value,
-                temperature: parseFloat(document.getElementById('temperature').value),
-                topP: parseFloat(document.getElementById('topP').value),
-                topK: parseInt(document.getElementById('topK').value),
-                maxTokens: parseInt(document.getElementById('maxTokens').value),
-                poetryLevel: parseInt(document.getElementById('poetryLevel').value),
-                title: document.getElementById('title').value,
-                genre: document.getElementById('genre').value,
-                style: document.getElementById('style').value,
-                characters: document.getElementById('characters').value,
-                world: document.getElementById('world').value,
-                mainIdea: document.getElementById('mainIdea').value,
-                conflict: document.getElementById('conflict').value,
-                chapters: parseInt(document.getElementById('chaptersCount').value),
-                chapterLength: parseInt(document.getElementById('chapterLength').value),
-                tone: document.getElementById('tone').value
-            };
-            
-            Storage.save('settings', settings);
-            Storage.save('currentBook', { outline, chapters });
-            alert('✅ Налаштування збережено!');
-        }
-
-        // Перемикання вкладок
-        function switchTab(tab) {
-            ['setup', 'outline', 'generate', 'export'].forEach(t => {
-                document.getElementById('content-' + t).classList.add('hidden');
-                document.getElementById('tab-' + t).className = 'tab-inactive px-6 py-2 rounded-lg font-semibold';
-            });
-            
-            document.getElementById('content-' + tab).classList.remove('hidden');
-            document.getElementById('tab-' + tab).className = 'tab-active px-6 py-2 rounded-lg font-semibold';
-        }
-
-        // API виклик
-        async function callAPI(prompt) {
-            const apiKey = document.getElementById('apiKey').value;
-            if (!apiKey) {
-                alert('⚠️ Введіть API ключ!');
-                throw new Error('No API key');
-            }
-
-            const provider = document.getElementById('apiProvider').value;
-            const model = document.getElementById('modelName').value;
-            const settings = {
-                temperature: parseFloat(document.getElementById('temperature').value),
-                topP: parseFloat(document.getElementById('topP').value),
-                topK: parseInt(document.getElementById('topK').value),
-                maxTokens: parseInt(document.getElementById('maxTokens').value)
-            };
-
-            let response;
-            
-            if (provider === 'gemini') {
-                response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
-                        generationConfig: {
-                            temperature: settings.temperature,
-                            topK: settings.topK,
-                            topP: settings.topP,
-                            maxOutputTokens: settings.maxTokens
-                        }
-                    })
-                });
-                
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error?.message || 'API error');
-                return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                
-            } else if (provider === 'openai') {
-                response = await fetch('https://api.openai.com/v1/chat/completions', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: model,
-                        messages: [{ role: 'user', content: prompt }],
-                        temperature: settings.temperature,
-                        top_p: settings.topP,
-                        max_tokens: settings.maxTokens
-                    })
-                });
-                
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error?.message || 'API error');
-                return data.choices?.[0]?.message?.content || '';
-                
-            } else if (provider === 'anthropic') {
-                response = await fetch('https://api.anthropic.com/v1/messages', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'x-api-key': apiKey,
-                        'anthropic-version': '2023-06-01'
-                    },
-                    body: JSON.stringify({
-                        model: model,
-                        messages: [{ role: 'user', content: prompt }],
-                        temperature: settings.temperature,
-                        top_p: settings.topP,
-                        max_tokens: settings.maxTokens
-                    })
-                });
-                
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error?.message || 'API error');
-                return data.content?.[0]?.text || '';
-                
-            } else if (provider === 'custom') {
-                const customUrl = document.getElementById('customUrl').value;
-                if (!customUrl) throw new Error('Введіть Custom URL');
-                
-                response = await fetch(customUrl, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${apiKey}`
-                    },
-                    body: JSON.stringify({
-                        model: model,
-                        messages: [{ role: 'user', content: prompt }],
-                        temperature: settings.temperature,
-                        max_tokens: settings.maxTokens
-                    })
-                });
-                
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.error?.message || 'API error');
-                return data.choices?.[0]?.message?.content || data.content || '';
-            }
-        }
-
-        async function testAPI() {
-            try {
-                const result = await callAPI('Напиши одне речення українською.');
-                alert('✅ API працює!\n\nВідповідь: ' + result.substring(0, 200));
-            } catch (error) {
-                alert('❌ Помилка API:\n' + error.message);
-            }
-        }
-
-        // Генерація outline
-        async function generateOutline() {
-            const btn = document.getElementById('btnOutline');
-            btn.disabled = true;
-            btn.textContent = '⏳ Генерація...';
-
-            try {
-                const settings = Storage.load('settings');
-                const prompt = `Створи детальний outline книги у форматі JSON:
-Назва: ${settings.title}
-Жанр: ${settings.genre}
-Стиль: ${settings.style}
-Тональність: ${settings.tone}
-Персонажі: ${settings.characters}
-Світ: ${settings.world}
-Головна ідея: ${settings.mainIdea}
-Конфлікт: ${settings.conflict}
-Кількість розділів: ${settings.chapters}
-
-Поверни ТІЛЬКИ JSON без пояснень:
-{
-  "chapters": [
-    {"number": 1, "title": "Назва", "summary": "Опис", "keyEvents": ["подія1", "подія2"]}
-  ]
-}`;
-
-                const result = await callAPI(prompt);
-                const jsonMatch = result.match(/\{[\s\S]*\}/);
-                outline = JSON.parse(jsonMatch[0]);
-                
-                Storage.save('currentBook', { outline, chapters });
-                displayOutline();
-            } catch (error) {
-                alert('❌ Помилка: ' + error.message);
-            }
-
-            btn.disabled = false;
-            btn.textContent = '▶️ Згенерувати outline';
-        }
-
-        function displayOutline() {
-            const container = document.getElementById('outlineContent');
-            container.innerHTML = outline.chapters.map(ch => `
-                <div class="bg-slate-700 p-4 rounded">
-                    <h3 class="font-bold text-lg mb-2">Розділ ${ch.number}: ${ch.title}</h3>
-                    <p class="text-sm text-slate-300 mb-2">${ch.summary}</p>
-                    <div class="text-xs text-amber-400">Події: ${ch.keyEvents?.join(', ') || 'немає'}</div>
-                </div>
-            `).join('');
-        }
-
-        // Генерація розділу
-        async function generateChapter(chapterInfo, btnId) {
-            const btn = document.getElementById(btnId);
-            btn.disabled = true;
-            btn.textContent = '⏳ Генерація...';
-
-            try {
-                const settings = Storage.load('settings');
-                const prompt = `Напиши повний текст розділу ${chapterInfo.number}: "${chapterInfo.title}"
-
-Контекст світу: ${JSON.stringify(context)}
-План розділу: ${chapterInfo.summary}
-Ключові події: ${chapterInfo.keyEvents?.join(', ')}
-
-Параметри написання:
-- Стиль: ${settings.style}
-- Тональність: ${settings.tone}
-- Рівень поетичності: ${settings.poetryLevel}/10
-- Бажана довжина: ~${settings.chapterLength} слів
-- Жанр: ${settings.genre}
-
-Напиши ТІЛЬКИ текст розділу без заголовків та пояснень. Створи атмосферний, захоплюючий текст.`;
-
-                const content = await callAPI(prompt);
-                chapters.push({ ...chapterInfo, content });
-                
-                context.lastChapter = chapterInfo.number;
-                context.events = [...(context.events || []), ...(chapterInfo.keyEvents || [])];
-                
-                Storage.save('currentBook', { outline, chapters });
-                btn.textContent = '✅ Готово';
-                updateExportStatus();
-            } catch (error) {
-                alert('❌ Помилка: ' + error.message);
-                btn.disabled = false;
-                btn.textContent = 'Згенерувати';
-            }
-        }
-
-        // Відображення розділів для генерації
-        switchTab = (function(original) {
-            return function(tab) {
-                original(tab);
-                if (tab === 'generate') {
-                    const container = document.getElementById('generateContent');
-                    if (!outline) {
-                        container.innerHTML = '<p class="text-slate-400">Спочатку створіть outline</p>';
-                        return;
-                    }
-                    
-                    container.innerHTML = outline.chapters.map((ch, i) => {
-                        const generated = chapters.find(c => c.number === ch.number);
-                        return `
-                            <div class="bg-slate-700 p-4 rounded mb-4">
-                                <div class="flex justify-between items-center">
-                                    <h3 class="font-bold">Розділ ${ch.number}: ${ch.title}</h3>
-                                    ${!generated 
-                                        ? `<button onclick="generateChapter(${JSON.stringify(ch).replace(/"/g, '&quot;')}, 'btn-ch-${i}')" id="btn-ch-${i}" class="bg-amber-500 hover:bg-amber-600 text-black px-4 py-2 rounded text-sm">Згенерувати</button>`
-                                        : '<span class="text-green-400">✅ Готово</span>'
-                                    }
-                                </div>
-                                ${generated ? `<div class="mt-2 text-sm text-slate-300 max-h-40 overflow-y-auto">${generated.content.substring(0, 500)}...</div>` : ''}
-                            </div>
-                        `;
-                    }).join('');
-                }
-                
-                if (tab === 'export') {
-                    updateExportStatus();
-                    updatePreview();
-                }
-            };
-        })(switchTab);
-
-        function updateExportStatus() {
-            document.getElementById('exportStatus').textContent = `${chapters.length} / ${outline?.chapters?.length || 0}`;
-        }
-
-        function updatePreview() {
-            const container = document.getElementById('previewContent');
-            if (chapters.length === 0) {
-                container.innerHTML = '<p class="text-slate-400">Немає згенерованих розділів</p>';
-                return;
-            }
-            
-            container.innerHTML = chapters.map(ch => `
-                <div class="mb-6">
-                    <h4 class="text-lg font-bold text-amber-400 mb-2">Розділ ${ch.number}: ${ch.title}</h4>
-                    <p class="whitespace-pre-wrap text-slate-300">${ch.content}</p>
-                </div>
-            `).join('');
-        }
-
-        // Експорт
-        function exportBook(format) {
-            if (chapters.length === 0) {
-                alert('⚠️ Немає розділів для експорту!');
-                return;
-            }
-
-            const settings = Storage.load('settings');
-            const title = settings.title || 'Книга';
-
-            if (format === 'txt') {
-                let content = `${title}\n${'='.repeat(title.length)}\n\n`;
-                chapters.forEach(ch => {
-                    content += `\n\nРОЗДІЛ ${ch.number}: ${ch.title}\n${'-'.repeat(50)}\n\n${ch.content}\n`;
-                });
-                download(content, `${title}.txt`, 'text/plain');
-            } else if (format === 'html') {
-                let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title>
-<style>body{max-width:800px;margin:40px auto;font-family:Georgia,serif;line-height:1.8;padding:20px}
-h1{text-align:center;border-bottom:2px solid #333}h2{margin-top:60px}</style>
-</head><body><h1>${title}</h1>`;
-                chapters.forEach(ch => {
-                    html += `<h2>Розділ ${ch.number}: ${ch.title}</h2><div>${ch.content.replace(/\n/g, '<br>')}</div>`;
-                });
-                html += '</body></html>';
-                download(html, `${title}.html`, 'text/html');
-            } else if (format === 'epub') {
-                let html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${title}</title></head><body><h1>${title}</h1>`;
-                chapters.forEach(ch => {
-                    html += `<h2>Розділ ${ch.number}: ${ch.title}</h2><p>${ch.content.replace(/\n/g, '<br>')}</p>`;
-                });
-                html += '</body></html>';
-                download(html, `${title}.epub`, 'application/epub+zip');
-            }
-        }
-
-        function download(content, filename, type) {
-            const blob = new Blob([content], { type });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = filename;
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-    </script>
+    <script src="main.js"></script>
 </body>
 </html>
