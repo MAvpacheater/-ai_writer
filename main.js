@@ -301,7 +301,7 @@ async function testAPI() {
     }
 }
 
-// Generate Outline
+// Generate Outline - ВИПРАВЛЕНО
 async function generateOutline() {
     const btn = document.getElementById('btnOutline');
     btn.disabled = true;
@@ -320,23 +320,43 @@ async function generateOutline() {
 Конфлікт: ${settings.conflict}
 Кількість розділів: ${settings.chapters}
 
-Поверни ТІЛЬКИ JSON без пояснень:
+КРИТИЧНО ВАЖЛИВО: Поверни ТІЛЬКИ валідний JSON без жодних пояснень, коментарів чи markdown форматування.
+Формат:
 {
   "chapters": [
-    {"number": 1, "title": "Назва", "summary": "Опис", "keyEvents": ["подія1", "подія2"]}
+    {"number": 1, "title": "Назва розділу", "summary": "Детальний опис що відбувається", "keyEvents": ["подія1", "подія2", "подія3"]}
   ]
 }`;
 
         const result = await callAPI(prompt);
-        const jsonMatch = result.match(/\{[\s\S]*\}/);
+        console.log('API Response:', result);
+        
+        // Видаляємо markdown форматування та зайві символи
+        let cleanResult = result
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
+            .trim();
+        
+        // Знаходимо JSON об'єкт
+        const jsonMatch = cleanResult.match(/\{[\s\S]*\}/);
+        if (!jsonMatch) {
+            throw new Error('API не повернув валідний JSON. Відповідь: ' + result.substring(0, 200));
+        }
+        
         outline = JSON.parse(jsonMatch[0]);
+        
+        // Перевірка структури
+        if (!outline.chapters || !Array.isArray(outline.chapters) || outline.chapters.length === 0) {
+            throw new Error('Невірна структура outline. Спробуйте ще раз.');
+        }
         
         Storage.save('currentBook', { outline, chapters });
         displayOutline();
         updateHeaderStats();
-        showNotification('✅ Outline згенеровано!', 'success');
+        showNotification('✅ Outline згенеровано! Розділів: ' + outline.chapters.length, 'success');
     } catch (error) {
-        showNotification('❌ Помилка: ' + error.message, 'error');
+        console.error('Outline generation error:', error);
+        showNotification('❌ Помилка: ' + error.message + '\n\nСпробуйте ще раз або змініть параметри.', 'error');
     }
 
     btn.disabled = false;
