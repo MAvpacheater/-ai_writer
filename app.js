@@ -281,17 +281,20 @@ REMINDER: Generate complete array with ALL ${chaptersCount} chapters. Start with
         if (outline.chapters.length < chaptersCount) {
             console.warn(`⚠️ Отримано ${outline.chapters.length} з ${chaptersCount} розділів`);
             
-            const retry = confirm(
-                `⚠️ AI згенерував лише ${outline.chapters.length} з ${chaptersCount} розділів.\n\n` +
-                `Спробувати ще раз?\n\n` +
-                `Порада: Спробуйте зменшити кількість розділів або використати іншу модель.`
+            const usePartial = confirm(
+                `⚠️ AI згенерував ${outline.chapters.length} з ${chaptersCount} розділів.\n\n` +
+                `Натисніть "OK" щоб ВИКОРИСТАТИ ці ${outline.chapters.length} розділів\n` +
+                `Натисніть "Скасувати" щоб спробувати ще раз\n\n` +
+                `Порада: Зменшіть кількість розділів до 5-7 для кращого результату.`
             );
             
-            if (retry) {
+            if (!usePartial) {
+                // Користувач хоче спробувати ще раз
                 btn.disabled = false;
                 btn.textContent = '▶️ Згенерувати outline';
                 return generateOutline();
             }
+            // Якщо usePartial = true, продовжуємо з частковим результатом
         }
         
         // Нормалізація даних
