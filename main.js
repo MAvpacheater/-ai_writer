@@ -1,4 +1,4 @@
-// main.js - ВИПРАВЛЕНА ВЕРСІЯ
+// main.js - ПОВНІСТЮ ВИПРАВЛЕНА ВЕРСІЯ
 
 // Storage Manager
 const Storage = {
@@ -61,11 +61,9 @@ function handleProviderChange(e) {
     
     if (provider === 'gemini') {
         modelSelect.innerHTML = `
-            <option value="gemini-3-pro">Gemini 3 pro</option>
-            <option value="gemini-2.5-flash-lite">gemini 2.5 flash-lite</option>
-            <option value="gemini-2.5-flash-live">gemini 2.5 flash-live</option>
-            <option value="gemini-2.0-flash-live">gemini 2.0 flash-live</option>
-            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+            <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp (рекомендовано)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
         `;
     } else if (provider === 'openai') {
         modelSelect.innerHTML = `
@@ -188,154 +186,6 @@ function switchTab(tab) {
         updateExportStatus();
         updatePreview();
     }
-}
-
-// Escape JSON string
-function escapeJsonString(str) {
-    if (!str) return '';
-    return str
-        .replace(/\\/g, '\\\\')
-        .replace(/"/g, '\\"')
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t')
-        .replace(/\f/g, '\\f')
-        .replace(/\b/g, '\\b');
-}
-
-// Clean JSON response - ПОКРАЩЕНА ВЕРСІЯ
-function cleanJsonResponse(text) {
-    if (!text) return null;
-    
-    console.log('Original API response:', text.substring(0, 300));
-    
-    // Видаляємо markdown блоки
-    let cleaned = text
-        .replace(/```json\s*/gi, '')
-        .replace(/```\s*/g, '')
-        .trim();
-    
-    // Шукаємо JSON об'єкт (від першої { до останньої })
-    const firstBrace = cleaned.indexOf('{');
-    const lastBrace = cleaned.lastIndexOf('}');
-    
-    if (firstBrace === -1 || lastBrace === -1) {
-        console.error('No JSON braces found in response');
-        return null;
-    }
-    
-    let jsonStr = cleaned.substring(firstBrace, lastBrace + 1);
-    
-    // Видаляємо коментарі
-    jsonStr = jsonStr.replace(/\/\/.*$/gm, '');
-    jsonStr = jsonStr.replace(/\/\*[\s\S]*?\*\//g, '');
-    
-    // Видаляємо зайві коми перед закриваючими дужками
-    jsonStr = jsonStr.replace(/,(\s*[}\]])/g, '$1');
-    
-    // Виправляємо розриви рядків всередині строкових значень
-    jsonStr = jsonStr.replace(/:\s*"([^"]*)\n([^"]*)"/, ':"$1 $2"');
-    
-    // Заміна одинарних лапок на подвійні (якщо є)
-    // Але обережно, щоб не зіпсувати текст всередині строк
-    const inStringContext = false;
-    
-    console.log('Cleaned JSON:', jsonStr.substring(0, 300));
-    
-    return jsonStr;
-}
-
-// Додаткова функція для парсингу з кількома спробами
-function parseJsonSafely(text) {
-    if (!text) throw new Error('Порожня відповідь від API');
-    
-    console.log('=== PARSING JSON ===');
-    console.log('Original length:', text.length);
-    console.log('First 500 chars:', text.substring(0, 500));
-    
-    // Спроба 1: звичайний парсинг
-    try {
-        const result = JSON.parse(text);
-        console.log('✓ Attempt 1 SUCCESS');
-        return result;
-    } catch (e1) {
-        console.warn('✗ Attempt 1 failed:', e1.message);
-    }
-    
-    // Спроба 2: видалення markdown та пробілів
-    try {
-        let cleaned = text
-            .replace(/```json\s*/gi, '')
-            .replace(/```\s*/gi, '')
-            .trim();
-        
-        const result = JSON.parse(cleaned);
-        console.log('✓ Attempt 2 SUCCESS');
-        return result;
-    } catch (e2) {
-        console.warn('✗ Attempt 2 failed:', e2.message);
-    }
-    
-    // Спроба 3: знаходження JSON між { }
-    try {
-        const firstBrace = text.indexOf('{');
-        const lastBrace = text.lastIndexOf('}');
-        
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-            let jsonStr = text.substring(firstBrace, lastBrace + 1);
-            
-            // Видаляємо коментарі
-            jsonStr = jsonStr.replace(/\/\/.*$/gm, '');
-            jsonStr = jsonStr.replace(/\/\*[\s\S]*?\*\//g, '');
-            
-            // Видаляємо зайві коми
-            jsonStr = jsonStr.replace(/,(\s*[}\]])/g, '$1');
-            
-            const result = JSON.parse(jsonStr);
-            console.log('✓ Attempt 3 SUCCESS');
-            return result;
-        }
-    } catch (e3) {
-        console.warn('✗ Attempt 3 failed:', e3.message);
-    }
-    
-    // Спроба 4: агресивна заміна лапок та виправлення
-    try {
-        let aggressive = text
-            .replace(/```[a-z]*\n?/gi, '')
-            .replace(/^[^{]*/, '')
-            .replace(/[^}]*$/, '')
-            .replace(/'/g, '"')
-            .replace(/,(\s*[}\]])/g, '$1')
-            .replace(/\n/g, ' ')
-            .replace(/\r/g, '')
-            .replace(/\t/g, ' ')
-            .replace(/  +/g, ' ')
-            .trim();
-        
-        const result = JSON.parse(aggressive);
-        console.log('✓ Attempt 4 SUCCESS');
-        return result;
-    } catch (e4) {
-        console.warn('✗ Attempt 4 failed:', e4.message);
-    }
-    
-    // Спроба 5: пошук масиву chapters безпосередньо
-    try {
-        const chaptersMatch = text.match(/"chapters"\s*:\s*\[([\s\S]*?)\]/);
-        if (chaptersMatch) {
-            const reconstructed = `{"chapters":[${chaptersMatch[1]}]}`;
-            const result = JSON.parse(reconstructed);
-            console.log('✓ Attempt 5 SUCCESS');
-            return result;
-        }
-    } catch (e5) {
-        console.warn('✗ Attempt 5 failed:', e5.message);
-    }
-    
-    console.error('❌ ALL ATTEMPTS FAILED');
-    console.error('Last 500 chars:', text.substring(text.length - 500));
-    throw new Error('Не вдалося розпарсити JSON після 5 спроб. Можливо, модель повернула текст замість JSON.');
 }
 
 // API Call
@@ -463,7 +313,77 @@ async function testAPI() {
     }
 }
 
-// Generate Outline - НАЙКРАЩА ВЕРСІЯ
+// Parse JSON Safely
+function parseJsonSafely(text) {
+    if (!text) throw new Error('Порожня відповідь від API');
+    
+    console.log('=== PARSING JSON ===');
+    console.log('Довжина відповіді:', text.length);
+    console.log('Перші 300 символів:', text.substring(0, 300));
+    
+    // Спроба 1: прямий парсинг
+    try {
+        const result = JSON.parse(text);
+        console.log('✅ Спроба 1 успішна - прямий парсинг');
+        return result;
+    } catch (e1) {
+        console.warn('❌ Спроба 1 не вдалася:', e1.message);
+    }
+    
+    // Спроба 2: видалення markdown блоків
+    try {
+        let cleaned = text
+            .replace(/```json\s*/gi, '')
+            .replace(/```\s*/gi, '')
+            .trim();
+        const result = JSON.parse(cleaned);
+        console.log('✅ Спроба 2 успішна - після видалення markdown');
+        return result;
+    } catch (e2) {
+        console.warn('❌ Спроба 2 не вдалася:', e2.message);
+    }
+    
+    // Спроба 3: витягнення JSON між { }
+    try {
+        const firstBrace = text.indexOf('{');
+        const lastBrace = text.lastIndexOf('}');
+        
+        if (firstBrace !== -1 && lastBrace !== -1) {
+            let jsonStr = text.substring(firstBrace, lastBrace + 1);
+            
+            // Чистимо від коментарів та зайвих ком
+            jsonStr = jsonStr
+                .replace(/\/\/.*$/gm, '')
+                .replace(/\/\*[\s\S]*?\*\//g, '')
+                .replace(/,(\s*[}\]])/g, '$1');
+            
+            const result = JSON.parse(jsonStr);
+            console.log('✅ Спроба 3 успішна - витягнення між дужками');
+            return result;
+        }
+    } catch (e3) {
+        console.warn('❌ Спроба 3 не вдалася:', e3.message);
+    }
+    
+    // Спроба 4: регулярний вираз для chapters
+    try {
+        const match = text.match(/"chapters"\s*:\s*\[([\s\S]*?)\]/);
+        if (match) {
+            const reconstructed = `{"chapters":[${match[1]}]}`;
+            const result = JSON.parse(reconstructed);
+            console.log('✅ Спроба 4 успішна - regex витягнення');
+            return result;
+        }
+    } catch (e4) {
+        console.warn('❌ Спроба 4 не вдалася:', e4.message);
+    }
+    
+    console.error('❌ ВСІ СПРОБИ НЕВДАЛІ');
+    console.error('Останні 300 символів:', text.substring(text.length - 300));
+    throw new Error('Не вдалося розпарсити JSON. Модель повернула некоректний формат.');
+}
+
+// Generate Outline - ВИПРАВЛЕНА ВЕРСІЯ
 async function generateOutline() {
     const btn = document.getElementById('btnOutline');
     btn.disabled = true;
@@ -478,80 +398,74 @@ async function generateOutline() {
         
         const chaptersCount = settings.chapters || 10;
         
-        // КРИТИЧНО: максимально простий та чіткий промпт
-        const prompt = `You are a JSON generator. Return ONLY valid JSON, no explanations.
+        // ПОКРАЩЕНИЙ ПРОМПТ
+        const prompt = `Generate a book outline in JSON format. Response must be ONLY valid JSON, no explanations, no markdown blocks.
 
-Create a book outline with ${chaptersCount} chapters.
-
-Book info:
+Book details:
 - Title: ${settings.title}
 - Genre: ${settings.genre}
 - Style: ${settings.style || 'narrative'}
+- Chapters needed: ${chaptersCount}
 
-RETURN ONLY THIS EXACT JSON FORMAT (no markdown, no comments, no extra text):
+Generate ${chaptersCount} chapters with titles, summaries and key events. Use Ukrainian language for all text content.
 
-{"chapters":[{"number":1,"title":"Chapter title","summary":"Chapter description","keyEvents":["event 1","event 2"]},{"number":2,"title":"Chapter title","summary":"Chapter description","keyEvents":["event 1","event 2"]}]}
+Return ONLY this JSON structure (start with { and end with }):
 
-Generate ${chaptersCount} chapters with interesting plot development. Use Ukrainian language for titles, summaries and events.
+{
+  "chapters": [
+    {
+      "number": 1,
+      "title": "Назва розділу українською",
+      "summary": "Короткий опис що відбувається в розділі",
+      "keyEvents": ["подія 1", "подія 2", "подія 3"]
+    }
+  ]
+}
 
-IMPORTANT: Return ONLY the JSON object, nothing else!`;
+IMPORTANT: Your response must start with { and contain ONLY valid JSON.`;
 
-        console.log('📤 Sending outline request...');
+        console.log('📤 Відправка запиту на outline...');
         const result = await callAPI(prompt);
         
         if (!result || result.trim().length === 0) {
             throw new Error('API повернув порожню відповідь');
         }
         
-        console.log('📥 Received response, length:', result.length);
+        console.log('📥 Отримано відповідь');
         
-        // Використовуємо покращений парсер
+        // Парсимо JSON
         outline = parseJsonSafely(result);
         
-        // Валідація
+        // Валідація структури
         if (!outline || typeof outline !== 'object') {
             throw new Error('Відповідь не є об\'єктом');
         }
         
-        if (!outline.chapters) {
-            // Спроба знайти chapters у різних форматах
-            if (outline.Chapters) outline.chapters = outline.Chapters;
-            else if (outline.CHAPTERS) outline.chapters = outline.CHAPTERS;
-            else throw new Error('Не знайдено поле "chapters"');
+        if (!outline.chapters && outline.Chapters) {
+            outline.chapters = outline.Chapters;
         }
         
-        if (!Array.isArray(outline.chapters)) {
-            throw new Error('"chapters" не є масивом');
+        if (!outline.chapters || !Array.isArray(outline.chapters)) {
+            throw new Error('Поле "chapters" відсутнє або не є масивом');
         }
         
         if (outline.chapters.length === 0) {
             throw new Error('Масив розділів порожній');
         }
         
-        // Нормалізація кожного розділу
-        outline.chapters = outline.chapters.map((ch, idx) => {
-            const normalized = {
-                number: parseInt(ch.number || ch.Number || (idx + 1)),
-                title: String(ch.title || ch.Title || `Розділ ${idx + 1}`).trim(),
-                summary: String(ch.summary || ch.Summary || ch.description || 'Опис відсутній').trim(),
-                keyEvents: []
-            };
-            
-            // Обробка keyEvents
-            if (Array.isArray(ch.keyEvents)) {
-                normalized.keyEvents = ch.keyEvents.filter(e => e && String(e).trim());
-            } else if (Array.isArray(ch.KeyEvents)) {
-                normalized.keyEvents = ch.KeyEvents.filter(e => e && String(e).trim());
-            } else if (Array.isArray(ch.events)) {
-                normalized.keyEvents = ch.events.filter(e => e && String(e).trim());
-            }
-            
-            return normalized;
-        });
+        // Нормалізація розділів
+        outline.chapters = outline.chapters.map((ch, idx) => ({
+            number: parseInt(ch.number || ch.Number || (idx + 1)),
+            title: String(ch.title || ch.Title || `Розділ ${idx + 1}`).trim(),
+            summary: String(ch.summary || ch.Summary || ch.description || '').trim(),
+            keyEvents: Array.isArray(ch.keyEvents) ? ch.keyEvents.filter(e => e) :
+                       Array.isArray(ch.KeyEvents) ? ch.KeyEvents.filter(e => e) :
+                       Array.isArray(ch.events) ? ch.events.filter(e => e) : []
+        }));
         
-        console.log('✅ Outline validated:', {
-            chaptersCount: outline.chapters.length,
-            firstChapter: outline.chapters[0]
+        console.log('✅ Outline створено:', {
+            розділів: outline.chapters.length,
+            перший: outline.chapters[0].title
         });
         
         Storage.save('currentBook', { outline, chapters });
@@ -561,19 +475,19 @@ IMPORTANT: Return ONLY the JSON object, nothing else!`;
         showNotification(
             `✅ Outline успішно створено!\n\n` +
             `Розділів: ${outline.chapters.length}\n` +
-            `Перший розділ: "${outline.chapters[0].title}"`,
+            `Перший: "${outline.chapters[0].title}"`,
             'success'
         );
         
     } catch (error) {
-        console.error('❌ Outline Generation Error:', error);
+        console.error('❌ Помилка генерації outline:', error);
         
-        let errorMsg = `❌ Не вдалося створити outline:\n\n${error.message}\n\n`;
-        errorMsg += `📋 Що спробувати:\n`;
-        errorMsg += `1. Змініть модель (спробуйте іншу версію Gemini)\n`;
-        errorMsg += `2. Зменшіть кількість розділів (наприклад, до 5)\n`;
-        errorMsg += `3. Перевірте, чи правильний API ключ\n`;
-        errorMsg += `4. Натисніть "Тест API" щоб перевірити з'єднання`;
+        let errorMsg = `❌ Помилка створення outline:\n\n${error.message}\n\n`;
+        errorMsg += `💡 Рекомендації:\n`;
+        errorMsg += `1. Спробуйте іншу модель Gemini\n`;
+        errorMsg += `2. Зменшіть кількість розділів (5-7)\n`;
+        errorMsg += `3. Перевірте консоль браузера (F12)\n`;
+        errorMsg += `4. Натисніть "Тест API" для перевірки`;
         
         showNotification(errorMsg, 'error');
     } finally {
@@ -643,7 +557,7 @@ ${chapterInfo.keyEvents?.join(', ') || 'немає'}
             throw new Error('Отриманий текст занадто короткий або порожній');
         }
         
-        // Очищаємо текст від можливих артефактів
+        // Очищаємо текст
         const cleanContent = content
             .replace(/^```.*\n?/gm, '')
             .replace(/```$/g, '')
@@ -663,13 +577,13 @@ ${chapterInfo.keyEvents?.join(', ') || 'немає'}
         btn.textContent = '✅ Готово';
         updateHeaderStats();
         updateExportStatus();
-        showNotification(`✅ Розділ ${chapterInfo.number} згенеровано успішно!`, 'success');
+        showNotification(`✅ Розділ ${chapterInfo.number} згенеровано!`, 'success');
         
         displayGenerateContent();
         
     } catch (error) {
-        console.error('Chapter Generation Error:', error);
-        showNotification('❌ Помилка генерації розділу:\n' + error.message, 'error');
+        console.error('Помилка генерації розділу:', error);
+        showNotification('❌ Помилка:\n' + error.message, 'error');
         btn.disabled = false;
         btn.textContent = 'Згенерувати';
     }
