@@ -371,40 +371,50 @@ async function generateChapter(chapterInfo, btnId) {
             ? `Попередні події: ${context.events?.slice(-5).join(', ') || 'немає'}`
             : 'Це перший розділ книги';
         
-        const prompt = `Ти професійний письменник. Напиши повний художній текст розділу.
+        const prompt = `You are a professional creative writer. Write a complete literary chapter in UKRAINIAN language.
 
-РОЗДІЛ ${chapterInfo.number}: "${chapterInfo.title}"
+CHAPTER ${chapterInfo.number}: "${chapterInfo.title}"
 
-КОНТЕКСТ:
+CONTEXT:
 ${contextInfo}
 
-ПЛАН:
+PLOT:
 ${chapterInfo.summary}
 
-ПОДІЇ:
-${chapterInfo.keyEvents?.join(', ') || 'немає'}
+KEY EVENTS:
+${chapterInfo.keyEvents?.join(', ') || 'none'}
 
-ПАРАМЕТРИ:
-- Жанр: ${settings.genre}
-- Стиль: ${settings.style}
-- Тональність: ${settings.tone}
-- Поетичність: ${settings.poetryLevel}/10
-- Довжина: ~${settings.chapterLength} слів
-- Персонажі: ${settings.characters}
+WRITING PARAMETERS:
+- Genre: ${settings.genre}
+- Style: ${settings.style}
+- Tone: ${settings.tone}
+- Length: approximately ${settings.chapterLength} words
+- Characters: ${settings.characters}
 
-КРИТИЧНО ВАЖЛИВО:
-1. Пиши ТІЛЬКИ художній текст
-2. БЕЗ заголовків, БЕЗ нумерації
-3. Почни відразу з історії
-4. Створи атмосферу
-5. Українською мовою
+CRITICAL INSTRUCTIONS:
+1. Write ONLY the story text in PROPER UKRAINIAN language
+2. NO titles, NO chapter numbers, NO headings
+3. Start directly with the narrative
+4. Create atmosphere and vivid descriptions
+5. Use correct Ukrainian grammar and spelling
+6. Write readable, coherent prose
+7. Divide text into paragraphs for readability
+8. Use literary language, not broken or corrupted text
 
-Починай:`;
+Begin writing the chapter now in Ukrainian:`;
 
         const content = await callAPI(prompt);
         
         if (!content || content.trim().length < 100) {
             throw new Error('Текст занадто короткий');
+        }
+        
+        // ПЕРЕВІРКА ЯКОСТІ: чи текст не зламаний?
+        const brokenTextPattern = /([а-яА-ЯіїєґІЇЄҐ]{1}\s){10,}/; // багато одиничних літер
+        const randomCharsPattern = /[ыъэё]{3,}/; // російські літери які не використовуються в українській
+        
+        if (brokenTextPattern.test(content) || randomCharsPattern.test(content)) {
+            throw new Error('AI згенерував зламаний текст. Спробуйте іншу модель або зменшіть довжину розділу.');
         }
         
         const cleanContent = content
