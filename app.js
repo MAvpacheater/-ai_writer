@@ -13,6 +13,7 @@ const Storage = {
 let outline = null;
 let chapters = [];
 let context = {};
+let isGenerating = false;
 
 // Ініціалізація при завантаженні
 window.addEventListener('DOMContentLoaded', () => {
@@ -319,7 +320,7 @@ function displayOutline() {
     `).join('');
 }
 
-// Генерація розділу
+// Генерація одного розділу
 async function generateChapter(chapterInfo, btnId) {
     const btn = document.getElementById(btnId);
     btn.disabled = true;
@@ -389,15 +390,104 @@ ${chapterInfo.keyEvents?.join(', ') || 'немає'}
         btn.textContent = '✅ Готово';
         updateHeaderStats();
         updateExportStatus();
-        showNotification(`✅ Розділ ${chapterInfo.number} згенеровано!`, 'success');
         
         displayGenerateContent();
         
     } catch (error) {
         console.error('Помилка генерації:', error);
-        showNotification('❌ Помилка:\n' + error.message, 'error');
+        showNotification('❌ Помилка розділу ' + chapterInfo.number + ':\n' + error.message, 'error');
         btn.disabled = false;
         btn.textContent = 'Згенерувати';
+        throw error;
+    }
+}
+
+// НОВА ФУНКЦІЯ: Генерація всіх розділів підряд
+async function generateAllChapters() {
+    if (!outline || !outline.chapters) {
+        showNotification('❌ Спочатку створіть outline!', 'error');
+        return;
+    }
+    
+    if (isGenerating) {
+        showNotification('⚠️ Генерація вже йде!', 'warning');
+        return;
+    }
+    
+    isGenerating = true;
+    
+    const allBtn = document.getElementById('btnGenerateAll');
+    if (allBtn) {
+        allBtn.disabled = true;
+        allBtn.textContent = '⏳ Генерація всіх розділів...';
+    }
+    
+    try {
+        const toGenerate = outline.chapters.filter(ch => !chapters.find(c => c.number === ch.number));
+        
+        if (toGenerate.length === 0) {
+            showNotification('✅ Всі розділи вже згенеровані!', 'success');
+            return;
+        }
+        
+        console.log(`📚 Генерація ${toGenerate.length} розділів...`);
+        
+        for (let i = 0; i < toGenerate.length; i++) {
+            const ch = toGenerate[i];
+            const btnId = `btn-ch-${outline.chapters.indexOf(ch)}`;
+            
+            console.log(`📝 Генерація розділу ${ch.number}/${outline.chapters.length}: "${ch.title}"`);
+            
+            try {
+                await generateChapter(ch, btnId);
+                console.log(`✅ Розділ ${ch.number} готово`);
+                
+                // Пауза між розділами щоб не перевантажити API
+                if (i < toGenerate.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 2000));
+                }
+                
+            } catch (error) {
+                console.error(`❌ Помилка розділу ${ch.number}:`, error);
+                
+                const continueGen = confirm(
+                    `❌ Помилка при генерації розділу ${ch.number}:\n\n${error.message}\n\n` +
+                    `Згенеровано: ${i} з ${toGenerate.length}\n\n` +
+                    `Продовжити генерацію наступних розділів?`
+                );
+                
+                if (!continueGen) {
+                    throw new Error('Генерація перервана користувачем');
+                }
+                
+                // Додаткова пауза після помилки
+                await new Promise(resolve => setTimeout(resolve, 3000));
+            }
+        }
+        
+        showNotification(
+            `✅ Генерація завершена!\n\n` +
+            `Всього розділів: ${chapters.length}/${outline.chapters.length}\n\n` +
+            `Готово до експорту!`,
+            'success'
+        );
+        
+        // Автоматично переключаємо на експорт
+        switchTab('export');
+        
+    } catch (error) {
+        console.error('❌ Помилка масової генерації:', error);
+        showNotification(
+            `❌ Помилка генерації:\n\n${error.message}\n\n` +
+            `Згенеровано розділів: ${chapters.length}/${outline.chapters.length}`,
+            'error'
+        );
+    } finally {
+        isGenerating = false;
+        if (allBtn) {
+            allBtn.disabled = false;
+            allBtn.textContent = '🚀 Згенерувати всі розділи';
+        }
     }
 }
 
@@ -411,7 +501,28 @@ function displayGenerateContent() {
         return;
     }
     
-    container.innerHTML = outline.chapters.map((ch, i) => {
+    const totalChapters = outline.chapters.length;
+    const completedChapters = chapters.length;
+    const remainingChapters = totalChapters - completedChapters;
+    
+    let html = `
+        <div style="margin-bottom: 30px; padding: 20px; background: rgba(179, 102, 255, 0.1); border-radius: 10px; border: 1px solid var(--purple-neon);">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 15px;">
+                <div>
+                    <h3 style="margin: 0 0 10px 0; color: var(--purple-neon);">Прогрес генерації</h3>
+                    <p style="margin: 0; color: var(--text-secondary);">
+                        Згенеровано: <strong style="color: var(--cyan-neon);">${completedChapters}/${totalChapters}</strong> розділів
+                        ${remainingChapters > 0 ? `<span style="color: #ff9800;">(залишилось: ${remainingChapters})</span>` : ''}
+                    </p>
+                </div>
+                <button onclick="generateAllChapters()" id="btnGenerateAll" class="btn btn-primary" ${isGenerating ? 'disabled' : ''}>
+                    🚀 Згенерувати всі розділи
+                </button>
+            </div>
+        </div>
+    `;
+    
+    html += outline.chapters.map((ch, i) => {
         const generated = chapters.find(c => c.number === ch.number);
         const chapterData = { number: ch.number, title: ch.title, summary: ch.summary, keyEvents: ch.keyEvents || [] };
         const chapterJson = JSON.stringify(chapterData).replace(/'/g, '&#39;').replace(/"/g, '&quot;');
@@ -432,6 +543,8 @@ function displayGenerateContent() {
             </div>
         `;
     }).join('');
+    
+    container.innerHTML = html;
 }
 
 // Оновлення статусу експорту
