@@ -179,7 +179,7 @@ function switchTab(tab) {
     }
 }
 
-// Генерація outline
+// ===== ВИПРАВЛЕНА ГЕНЕРАЦІЯ OUTLINE =====
 async function generateOutline() {
     const btn = document.getElementById('btnOutline');
     btn.disabled = true;
@@ -194,56 +194,71 @@ async function generateOutline() {
         
         const chaptersCount = settings.chapters || 10;
         
-        const prompt = `You are a professional book outline generator. Create a detailed book outline.
+        // КРИТИЧНО ВАЖЛИВИЙ ПРОМПТ - ЯВНА ВКАЗІВКА ГЕНЕРУВАТИ ВСІ РОЗДІЛИ
+        const prompt = `You are a professional book outline generator. 
 
-CRITICAL: Return ONLY valid JSON. Start with { and end with }. No explanations, no markdown, no text before or after JSON.
+CRITICAL INSTRUCTION: You MUST generate EXACTLY ${chaptersCount} chapters in a SINGLE response. Do NOT stop until all ${chaptersCount} chapters are complete.
 
 Book details:
 - Title: ${settings.title}
 - Genre: ${settings.genre}
 - Style: ${settings.style || 'narrative'}
-- Chapters: ${chaptersCount}
+- Total chapters needed: ${chaptersCount}
 - Characters: ${settings.characters || 'not specified'}
 - World: ${settings.world || 'not specified'}
 - Main idea: ${settings.mainIdea || 'not specified'}
 - Conflict: ${settings.conflict || 'not specified'}
 
-Generate exactly ${chaptersCount} chapters. All text content MUST be in Ukrainian language.
+REQUIREMENTS:
+1. Generate ALL ${chaptersCount} chapters from 1 to ${chaptersCount}
+2. All text MUST be in Ukrainian language
+3. Return ONLY valid JSON - start with { and end with }
+4. No markdown, no explanations, no text before or after JSON
+5. Each chapter must have: number, title, summary, keyEvents
 
-Return this exact JSON structure:
+JSON structure (generate ALL ${chaptersCount} chapters):
 {
   "chapters": [
     {
       "number": 1,
       "title": "Назва першого розділу українською",
-      "summary": "Детальний опис що відбувається в розділі українською мовою",
+      "summary": "Детальний опис що відбувається в розділі українською мовою (мінімум 2-3 речення)",
       "keyEvents": ["перша подія українською", "друга подія українською", "третя подія українською"]
     },
     {
       "number": 2,
       "title": "Назва другого розділу українською",
-      "summary": "Детальний опис другого розділу українською мовою",
+      "summary": "Детальний опис другого розділу українською мовою (мінімум 2-3 речення)",
       "keyEvents": ["перша подія", "друга подія", "третя подія"]
+    },
+    ... continue until chapter ${chaptersCount} ...
+    {
+      "number": ${chaptersCount},
+      "title": "Назва останнього розділу українською",
+      "summary": "Детальний опис фінального розділу українською мовою",
+      "keyEvents": ["фінальна подія 1", "фінальна подія 2", "фінальна подія 3"]
     }
   ]
 }
 
-IMPORTANT: 
-- Start immediately with {
-- End with }
-- Use double quotes for all strings
-- All text in Ukrainian
-- Exactly ${chaptersCount} chapters
-- No markdown, no comments, no extra text`;
+REMINDER: Generate complete array with ALL ${chaptersCount} chapters. Start with chapter 1, end with chapter ${chaptersCount}. No partial results!`;
 
-        console.log('📤 Запит outline...');
+        console.log(`📤 Запит outline для ${chaptersCount} розділів...`);
+        
+        // ЗБІЛЬШЕНО maxTokens для великих outline
+        const originalMaxTokens = document.getElementById('maxTokens').value;
+        document.getElementById('maxTokens').value = Math.max(16000, chaptersCount * 800);
+        
         const result = await callAPI(prompt);
+        
+        // Відновлюємо maxTokens
+        document.getElementById('maxTokens').value = originalMaxTokens;
         
         if (!result || result.trim().length === 0) {
             throw new Error('API повернув порожню відповідь');
         }
         
-        console.log('📥 Відповідь отримано, парсинг...');
+        console.log(`📥 Відповідь отримано (${result.length} символів), парсинг...`);
         outline = parseJsonSafely(result);
         
         if (!outline || typeof outline !== 'object') {
@@ -260,6 +275,23 @@ IMPORTANT:
         
         if (outline.chapters.length === 0) {
             throw new Error('Масив розділів порожній');
+        }
+        
+        // ПЕРЕВІРКА: чи отримали всі розділи?
+        if (outline.chapters.length < chaptersCount) {
+            console.warn(`⚠️ Отримано ${outline.chapters.length} з ${chaptersCount} розділів`);
+            
+            const retry = confirm(
+                `⚠️ AI згенерував лише ${outline.chapters.length} з ${chaptersCount} розділів.\n\n` +
+                `Спробувати ще раз?\n\n` +
+                `Порада: Спробуйте зменшити кількість розділів або використати іншу модель.`
+            );
+            
+            if (retry) {
+                btn.disabled = false;
+                btn.textContent = '▶️ Згенерувати outline';
+                return generateOutline();
+            }
         }
         
         // Нормалізація даних
@@ -279,7 +311,10 @@ IMPORTANT:
         updateHeaderStats();
         
         showNotification(
-            `✅ Outline успішно створено!\n\nРозділів: ${outline.chapters.length}\nПерший: "${outline.chapters[0].title}"`,
+            `✅ Outline успішно створено!\n\n` +
+            `Розділів: ${outline.chapters.length}/${chaptersCount}\n` +
+            `Перший: "${outline.chapters[0].title}"\n` +
+            `Останній: "${outline.chapters[outline.chapters.length - 1].title}"`,
             'success'
         );
         
@@ -289,10 +324,10 @@ IMPORTANT:
         showNotification(
             `❌ Помилка створення outline:\n\n${error.message}\n\n` +
             `💡 Спробуйте:\n` +
-            `1. Іншу модель Gemini\n` +
-            `2. Зменшіть розділів до 5-7\n` +
-            `3. Натисніть F12 → Console для деталей\n` +
-            `4. "Тест API" для перевірки підключення`,
+            `1. Зменшіть кількість розділів (спробуйте 5-7)\n` +
+            `2. Використайте Gemini 2.0 Flash Exp\n` +
+            `3. Збільшіть Max Tokens до 16000+\n` +
+            `4. Натисніть F12 → Console для деталей`,
             'error'
         );
     } finally {
@@ -402,7 +437,7 @@ ${chapterInfo.keyEvents?.join(', ') || 'немає'}
     }
 }
 
-// НОВА ФУНКЦІЯ: Генерація всіх розділів підряд
+// Генерація всіх розділів підряд
 async function generateAllChapters() {
     if (!outline || !outline.chapters) {
         showNotification('❌ Спочатку створіть outline!', 'error');
@@ -442,7 +477,6 @@ async function generateAllChapters() {
                 await generateChapter(ch, btnId);
                 console.log(`✅ Розділ ${ch.number} готово`);
                 
-                // Пауза між розділами щоб не перевантажити API
                 if (i < toGenerate.length - 1) {
                     await new Promise(resolve => setTimeout(resolve, 2000));
                 }
@@ -460,7 +494,6 @@ async function generateAllChapters() {
                     throw new Error('Генерація перервана користувачем');
                 }
                 
-                // Додаткова пауза після помилки
                 await new Promise(resolve => setTimeout(resolve, 3000));
             }
         }
@@ -472,7 +505,6 @@ async function generateAllChapters() {
             'success'
         );
         
-        // Автоматично переключаємо на експорт
         switchTab('export');
         
     } catch (error) {
