@@ -61,9 +61,17 @@ function handleProviderChange(e) {
     
     const models = {
         gemini: [
-            { value: 'gemini-2.0-flash-exp', text: 'Gemini 2.0 Flash Exp (рекомендовано)' },
-            { value: 'gemini-1.5-pro', text: 'Gemini 1.5 Pro' },
-            { value: 'gemini-1.5-flash', text: 'Gemini 1.5 Flash' }
+            { value: 'gemini-2.5-flash', text: 'Gemini 2.5 Flash - Text/Image (250K TPM) 🔥' },
+            { value: 'gemini-2.0-flash', text: 'Gemini 2.0 Flash - Text/Image (1M TPM)' },
+            { value: 'gemini-2.5-flash-lite', text: 'Gemini 2.5 Flash Lite - Text/Image (250K TPM)' },
+            { value: 'gemini-2.0-flash-lite', text: 'Gemini 2.0 Flash Lite - Text/Image (1M TPM)' },
+            { value: 'gemini-1.5-pro', text: 'Gemini 1.5 Pro - Legacy' },
+            { value: 'gemini-1.5-flash', text: 'Gemini 1.5 Flash - Legacy' },
+            { value: 'gemma-3-27b', text: 'Gemma 3 27B - Text Only' },
+            { value: 'gemma-3-12b', text: 'Gemma 3 12B - Text Only' },
+            { value: 'gemma-3-4b', text: 'Gemma 3 4B - Text Only' },
+            { value: 'gemma-3-2b', text: 'Gemma 3 2B - Text Only' },
+            { value: 'gemma-3-1b', text: 'Gemma 3 1B - Text Only' }
         ],
         openai: [
             { value: 'gpt-4-turbo', text: 'GPT-4 Turbo' },
@@ -115,7 +123,18 @@ function loadSettings() {
             }
         });
         
-        // Trigger provider change
+        // Trigger provider change FIRST to populate models
+        const providerElement = document.getElementById('apiProvider');
+        if (providerElement) {
+            handleProviderChange({ target: providerElement });
+            // THEN set the saved model
+            const modelElement = document.getElementById('modelName');
+            if (modelElement && saved.modelName) {
+                modelElement.value = saved.modelName;
+            }
+        }
+    } else {
+        // Default setup for first time users
         const providerElement = document.getElementById('apiProvider');
         if (providerElement) {
             handleProviderChange({ target: providerElement });
