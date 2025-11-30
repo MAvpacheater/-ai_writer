@@ -3,246 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ШІ-Письменник</title>
+    <title>ШІ-Письменник - Генератор Книг</title>
     <link rel="stylesheet" href="main.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Header -->
-        <header class="app-header">
-            <div class="logo">
-                <svg class="logo-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
-                </svg>
-                <h1 class="logo-text">ШІ-Письменник</h1>
-            </div>
-            <div class="header-stats">
-                <div class="stat-item">
-                    <span class="stat-label">Розділів</span>
-                    <span class="stat-value" id="headerChaptersCount">0/0</span>
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="logo-icon">📚</span>
+                    <span>ШІ-Письменник</span>
                 </div>
-            </div>
-        </header>
-
-        <!-- Navigation -->
-        <nav class="tab-navigation">
-            <button onclick="switchTab('setup')" id="tab-setup" class="tab-btn active">
-                <span class="tab-number">1</span>
-                <span class="tab-text">Налаштування</span>
-            </button>
-            <button onclick="switchTab('outline')" id="tab-outline" class="tab-btn">
-                <span class="tab-number">2</span>
-                <span class="tab-text">Структура</span>
-            </button>
-            <button onclick="switchTab('generate')" id="tab-generate" class="tab-btn">
-                <span class="tab-number">3</span>
-                <span class="tab-text">Генерація</span>
-            </button>
-            <button onclick="switchTab('export')" id="tab-export" class="tab-btn">
-                <span class="tab-number">4</span>
-                <span class="tab-text">Експорт</span>
-            </button>
-        </nav>
-
-        <!-- Tab: Setup -->
-        <div id="content-setup" class="tab-content active">
-            <div class="content-grid">
-                <!-- API Settings -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">🔌 API Налаштування</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group">
-                            <label class="form-label">API Provider</label>
-                            <select id="apiProvider" class="form-select">
-                                <option value="gemini">Google Gemini</option>
-                                <option value="openai">OpenAI</option>
-                                <option value="anthropic">Anthropic Claude</option>
-                                <option value="custom">Custom URL</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Модель</label>
-                            <select id="modelName" class="form-select">
-                                <option value="gemini-2.0-flash">Gemini 2.0 Flash (рекомендовано)</option>
-                                <option value="gemini-3.0-pro">Gemini 3 Pro</option>
-                                <option value="gemini-2.5-flash">Gemini 2.5 Flash</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">API Key</label>
-                            <input type="password" id="apiKey" class="form-input" placeholder="AIza... або sk-...">
-                        </div>
-
-                        <div id="customUrlBlock" class="form-group hidden">
-                            <label class="form-label">Custom API URL</label>
-                            <input type="text" id="customUrl" class="form-input" placeholder="https://api.example.com/v1/chat/completions">
-                        </div>
-
-                        <div class="params-grid">
-                            <div class="form-group">
-                                <label class="form-label">Temperature: <span id="tempValue" class="param-value">0.9</span></label>
-                                <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.9" class="form-range">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Top P: <span id="topPValue" class="param-value">0.95</span></label>
-                                <input type="range" id="topP" min="0" max="1" step="0.05" value="0.95" class="form-range">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Top K: <span id="topKValue" class="param-value">40</span></label>
-                                <input type="range" id="topK" min="1" max="100" value="40" class="form-range">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Max Tokens: <span id="maxTokensValue" class="param-value">8000</span></label>
-                                <input type="range" id="maxTokens" min="1000" max="32000" step="1000" value="8000" class="form-range">
-                            </div>
-                        </div>
-
-                        <button onclick="testAPI()" class="btn btn-secondary">
-                            🧪 Тест API
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Book Settings -->
-                <div class="card">
-                    <div class="card-header">
-                        <h2 class="card-title">📚 Параметри книги</h2>
-                    </div>
-                    <div class="card-body">
-                        <div class="form-group">
-                            <label class="form-label">Назва книги</label>
-                            <input id="title" class="form-input" placeholder="Введіть назву...">
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label class="form-label">Жанр</label>
-                                <input id="genre" class="form-input" placeholder="Фентезі, наукова фантастика...">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Стиль</label>
-                                <input id="style" class="form-input" placeholder="Поетичний, епічний...">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Персонажі</label>
-                            <textarea id="characters" class="form-textarea" rows="3" placeholder="Опис персонажів, їх характер та мотивація..."></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Світ/Сеттінг</label>
-                            <textarea id="world" class="form-textarea" rows="3" placeholder="Опис світу та його особливостей..."></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Головна ідея</label>
-                            <textarea id="mainIdea" class="form-textarea" rows="3" placeholder="Центральна тема та послання книги..."></textarea>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Конфлікт</label>
-                            <textarea id="conflict" class="form-textarea" rows="3" placeholder="Основний конфлікт та напруга..."></textarea>
-                        </div>
-
-                        <div class="params-grid">
-                            <div class="form-group">
-                                <label class="form-label">Розділів: <span id="chaptersValue" class="param-value">10</span></label>
-                                <input type="range" id="chaptersCount" min="3" max="50" value="10" class="form-range">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Довжина: <span id="chapterLengthValue" class="param-value">2000</span> слів</label>
-                                <input type="range" id="chapterLength" min="500" max="5000" step="500" value="2000" class="form-range">
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Поетичність: <span id="poetryValue" class="param-value">7</span>/10</label>
-                                <input type="range" id="poetryLevel" min="1" max="10" value="7" class="form-range">
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Тональність</label>
-                            <select id="tone" class="form-select">
-                                <option value="neutral">Нейтральна</option>
-                                <option value="dark">Темна</option>
-                                <option value="light">Світла</option>
-                                <option value="epic">Епічна</option>
-                                <option value="ironic">Іронічна</option>
-                                <option value="romantic">Романтична</option>
-                                <option value="philosophical">Філософська</option>
-                            </select>
-                        </div>
-
-                        <button onclick="saveSettings()" class="btn btn-primary">
-                            💾 Зберегти налаштування
-                        </button>
-                    </div>
+                <div class="model-badge" id="headerStats">
+                    Розділів: <span id="headerChaptersCount">0/0</span>
                 </div>
             </div>
         </div>
+    </header>
 
-        <!-- Tab: Outline -->
-        <div id="content-outline" class="tab-content">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">📋 Структура книги</h2>
-                    <button onclick="generateOutline()" id="btnOutline" class="btn btn-primary">
-                        ▶️ Згенерувати outline
-                    </button>
-                </div>
-                <div class="card-body">
-                    <div id="outlineContent" class="outline-list"></div>
+    <!-- Main Content -->
+    <main class="main">
+        <div class="container">
+            
+            <!-- Hero Section -->
+            <section class="hero-section">
+                <h1 class="hero-title">Створіть свою книгу з допомогою ШІ</h1>
+                <p class="hero-subtitle">Потужний інструмент для генерації художніх текстів з підтримкою різних AI моделей</p>
+            </section>
+
+            <!-- Tab Navigation -->
+            <nav class="wizard-steps" style="margin-bottom: 2rem;">
+                <div class="step active" onclick="switchTab('setup')" id="tab-setup">1</div>
+                <div class="step-line"></div>
+                <div class="step" onclick="switchTab('outline')" id="tab-outline">2</div>
+                <div class="step-line"></div>
+                <div class="step" onclick="switchTab('generate')" id="tab-generate">3</div>
+                <div class="step-line"></div>
+                <div class="step" onclick="switchTab('export')" id="tab-export">4</div>
+            </nav>
+
+            <!-- Tab: Setup -->
+            <div id="content-setup" class="tab-content active">
+                <div class="wizard-container">
+                    <h2 style="margin-bottom: 2rem; font-size: 1.5rem;">⚙️ Налаштування</h2>
+                    
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 2rem;">
+                        
+                        <!-- API Settings -->
+                        <div>
+                            <h3 style="margin-bottom: 1.5rem; color: var(--color-accent);">🔌 API Налаштування</h3>
+                            
+                            <div class="form-group">
+                                <label class="form-label">API Provider</label>
+                                <select id="apiProvider" class="form-select">
+                                    <option value="gemini">Google Gemini</option>
+                                    <option value="openai">OpenAI</option>
+                                    <option value="anthropic">Anthropic Claude</option>
+                                    <option value="custom">Custom URL</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Модель</label>
+                                <select id="modelName" class="form-select">
+                                    <option value="gemini-2.0-flash-exp">Gemini 2.0 Flash Exp</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">API Key</label>
+                                <input type="password" id="apiKey" class="form-input" placeholder="AIza... або sk-...">
+                            </div>
+
+                            <div id="customUrlBlock" class="form-group" style="display: none;">
+                                <label class="form-label">Custom API URL</label>
+                                <input type="text" id="customUrl" class="form-input" placeholder="https://api.example.com/v1/chat/completions">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Temperature: <span id="tempValue" class="range-value">0.9</span></label>
+                                <input type="range" id="temperature" min="0" max="2" step="0.1" value="0.9">
+                                <div class="range-labels">
+                                    <span>Точний</span>
+                                    <span>Креативний</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Max Tokens: <span id="maxTokensValue" class="range-value">8000</span></label>
+                                <input type="range" id="maxTokens" min="2000" max="32000" step="1000" value="8000">
+                            </div>
+
+                            <button onclick="testAPI()" class="btn btn-secondary" style="width: 100%;">
+                                🧪 Тест API
+                            </button>
+                        </div>
+
+                        <!-- Book Settings -->
+                        <div>
+                            <h3 style="margin-bottom: 1.5rem; color: var(--color-accent);">📚 Параметри книги</h3>
+                            
+                            <div class="form-group">
+                                <label class="form-label">Назва книги *</label>
+                                <input id="title" class="form-input" placeholder="Введіть назву книги...">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Жанр *</label>
+                                <input id="genre" class="form-input" placeholder="Фентезі, наукова фантастика, детектив...">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Стиль письма</label>
+                                <select id="style" class="form-select">
+                                    <option value="narrative">Оповідальний</option>
+                                    <option value="poetic">Поетичний</option>
+                                    <option value="epic">Епічний</option>
+                                    <option value="minimalist">Мінімалістичний</option>
+                                    <option value="descriptive">Описовий</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Персонажі</label>
+                                <textarea id="characters" class="form-textarea" rows="2" placeholder="Опишіть головних персонажів..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Головна ідея</label>
+                                <textarea id="mainIdea" class="form-textarea" rows="2" placeholder="Центральна тема книги..."></textarea>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Кількість розділів: <span id="chaptersValue" class="range-value">10</span></label>
+                                <input type="range" id="chaptersCount" min="3" max="30" value="10">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label">Довжина розділу (слів): <span id="chapterLengthValue" class="range-value">2000</span></label>
+                                <input type="range" id="chapterLength" min="500" max="5000" step="500" value="2000">
+                            </div>
+
+                            <button onclick="saveSettings()" class="btn btn-primary" style="width: 100%;">
+                                💾 Зберегти налаштування
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Tab: Generate -->
-        <div id="content-generate" class="tab-content">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">✍️ Генерація розділів</h2>
+            <!-- Tab: Outline -->
+            <div id="content-outline" class="tab-content">
+                <div class="wizard-container">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                        <h2 style="font-size: 1.5rem;">📋 Структура книги</h2>
+                        <button onclick="generateOutline()" id="btnOutline" class="btn btn-primary">
+                            ▶️ Згенерувати outline
+                        </button>
+                    </div>
+                    <div id="outlineContent"></div>
                 </div>
-                <div class="card-body">
+            </div>
+
+            <!-- Tab: Generate -->
+            <div id="content-generate" class="tab-content">
+                <div class="wizard-container">
+                    <h2 style="margin-bottom: 2rem; font-size: 1.5rem;">✍️ Генерація розділів</h2>
                     <div id="generateContent"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- Tab: Export -->
-        <div id="content-export" class="tab-content">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">📥 Експорт книги</h2>
-                </div>
-                <div class="card-body">
-                    <div class="export-status">
-                        Згенеровано розділів: <span id="exportStatus" class="status-highlight">0 / 0</span>
+            <!-- Tab: Export -->
+            <div id="content-export" class="tab-content">
+                <div class="wizard-container">
+                    <h2 style="margin-bottom: 2rem; font-size: 1.5rem;">📥 Експорт книги</h2>
+                    
+                    <div style="background: var(--color-bg-secondary); padding: 1.5rem; border-radius: var(--radius-lg); margin-bottom: 2rem; text-align: center;">
+                        <p style="font-size: 1.1rem;">Згенеровано розділів: <span id="exportStatus" style="color: var(--color-accent); font-weight: 700; font-size: 1.5rem;">0/0</span></p>
                     </div>
 
-                    <div class="export-buttons">
-                        <button onclick="exportBook('txt')" class="btn btn-secondary">
-                            📄 Експорт TXT
-                        </button>
-                        <button onclick="exportBook('html')" class="btn btn-secondary">
-                            🌐 Експорт HTML
-                        </button>
-                        <button onclick="exportBook('epub')" class="btn btn-secondary">
-                            📚 Експорт EPUB
-                        </button>
+                    <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                        <button onclick="exportBook('txt')" class="btn btn-secondary">📄 Експорт TXT</button>
+                        <button onclick="exportBook('html')" class="btn btn-secondary">🌐 Експорт HTML</button>
+                        <button onclick="exportBook('epub')" class="btn btn-secondary">📚 Експорт EPUB</button>
                     </div>
 
-                    <h3 class="preview-title">Попередній перегляд:</h3>
-                    <div id="previewContent" class="preview-box"></div>
+                    <h3 style="margin-bottom: 1rem; color: var(--color-accent);">Попередній перегляд:</h3>
+                    <div id="previewContent" style="background: var(--color-bg-secondary); padding: 1.5rem; border-radius: var(--radius-lg); max-height: 500px; overflow-y: auto;"></div>
                 </div>
             </div>
-        </div>
-    </div>
 
-    <script src="api.js"></script>
+        </div>
+    </main>
+
     <script src="app.js"></script>
 </body>
 </html>
