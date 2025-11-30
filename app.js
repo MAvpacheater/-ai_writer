@@ -65,8 +65,6 @@ function handleProviderChange(e) {
             { value: 'gemini-2.0-flash', text: 'Gemini 2.0 Flash - Text/Image (1M TPM)' },
             { value: 'gemini-2.5-flash-lite', text: 'Gemini 2.5 Flash Lite - Text/Image (250K TPM)' },
             { value: 'gemini-2.0-flash-lite', text: 'Gemini 2.0 Flash Lite - Text/Image (1M TPM)' },
-            { value: 'gemini-1.5-pro', text: 'Gemini 1.5 Pro - Legacy' },
-            { value: 'gemini-1.5-flash', text: 'Gemini 1.5 Flash - Legacy' },
             { value: 'gemma-3-27b', text: 'Gemma 3 27B - Text Only' },
             { value: 'gemma-3-12b', text: 'Gemma 3 12B - Text Only' },
             { value: 'gemma-3-4b', text: 'Gemma 3 4B - Text Only' },
